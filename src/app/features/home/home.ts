@@ -10,7 +10,7 @@ import { environment } from '../../../environments/environment';
   template: `
     <app-site-header />
 
-    <main class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
+    <main class="mx-auto flex max-w-[1800px] flex-col gap-6 px-4 py-8">
       <div class="flex flex-col gap-1">
         <h1 class="text-lg font-semibold">Monitoramento de câmeras</h1>
         <p class="text-sm text-muted-foreground">
@@ -20,7 +20,7 @@ import { environment } from '../../../environments/environment';
 
       <section class="grid gap-6 lg:grid-cols-2">
         @for (feed of feeds(); track feed.id) {
-          <gp-camera-stream [src]="feed.src" [title]="feed.name" />
+          <gp-camera-stream [src]="feed.src" [title]="feed.name" [anpr]="true" />
         }
       </section>
     </main>
