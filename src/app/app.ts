@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { SessionService } from '@/shared/core/auth';
 import { ThemeService } from '@/shared/services/theme.service';
 import { ZardToastComponent } from '@/shared/components/toast';
 
@@ -10,8 +11,15 @@ import { ZardToastComponent } from '@/shared/components/toast';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App {
+export class App implements OnInit {
+  private readonly session = inject(SessionService);
+
   constructor() {
     inject(ThemeService);
+  }
+
+  ngOnInit(): void {
+    if (this.session.usuario()) return;
+    void this.session.carregar();
   }
 }

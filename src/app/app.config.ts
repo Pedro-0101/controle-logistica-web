@@ -1,8 +1,10 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { OVERLAY_DEFAULT_CONFIG } from '@angular/cdk/overlay';
+
+import { authInterceptor } from '@/shared/core/http/auth.interceptor';
 
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -47,7 +49,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideAnimations(),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([authInterceptor])),
     {
       provide: OVERLAY_DEFAULT_CONFIG,
       useValue: { usePopover: false },
