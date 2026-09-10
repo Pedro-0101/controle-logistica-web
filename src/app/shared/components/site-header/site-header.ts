@@ -66,6 +66,26 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
               </ng-template>
             </div>
 
+            <div z-navigation-menu-item>
+              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="pontosMenu">
+                Pontos
+              </button>
+              <ng-template #pontosMenu>
+                <div z-navigation-menu-content class="w-56">
+                  <a
+                    z-navigation-menu-link
+                    routerLink="/pontos"
+                    routerLinkActive
+                    #linkPontos="routerLinkActive"
+                    [zActive]="linkPontos.isActive"
+                  >
+                    <ng-icon name="lucideMapPin" aria-hidden="true" />
+                    Gerenciar pontos
+                  </a>
+                </div>
+              </ng-template>
+            </div>
+
             @if (isRoot()) {
               <div z-navigation-menu-item>
                 <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="empresasMenu">

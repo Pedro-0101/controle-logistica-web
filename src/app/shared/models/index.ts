@@ -4,4 +4,5 @@ export * from './api-error.model';
 export * from './auth.model';
 export * from './base.model';
 export * from './company.model';
+export * from './point.model';
 export * from './user.model';

@@ -33,5 +33,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/companies/companies').then((m) => m.Companies),
     title: 'Gerenciar empresas',
   },
+  {
+    path: 'pontos',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/points/points').then((m) => m.Points),
+    title: 'Gerenciar pontos',
+  },
   { path: '**', redirectTo: 'home' },
 ];
