@@ -27,7 +27,7 @@ import {
 type StreamStatus = 'loading' | 'playing' | 'error';
 
 const ANPR_INTERVAL_MS = 700;
-const CAPTURE_MAX_DIM = 640;
+const CAPTURE_MAX_DIM = 960;
 const CAPTURE_QUALITY = 0.7;
 const REQUEST_TIMEOUT_MS = 10_000;
 const PLATE_HOLD_MS = 1500;
