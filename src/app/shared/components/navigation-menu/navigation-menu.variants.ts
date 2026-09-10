@@ -68,7 +68,7 @@ export const navigationMenuViewportVariants = cva([
 
 export const navigationMenuLinkVariants = cva(
   [
-    'relative flex w-full cursor-default select-none items-center gap-2 rounded-md p-2 text-left text-sm',
+    'relative flex w-full cursor-pointer select-none items-center gap-2 rounded-md p-2 text-left text-sm',
     'transition-all outline-none hover:bg-muted focus:bg-muted',
     'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-1',
     'data-active:bg-muted/50 data-active:hover:bg-muted data-active:focus:bg-muted',
