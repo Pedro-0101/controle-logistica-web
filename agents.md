@@ -1,5 +1,13 @@
 You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices.
 
+## Sobre o sistema
+
+O sistema é usado em **portarias** para controlar a **entrada e saída de veículos** em
+**várias filiais**. Cada filial (unidade administrativa) possui seus próprios pontos de
+controle, câmeras e movimentações. Considere sempre o contexto multi-filial ao modelar
+entidades, consultas e permissões — os dados devem ser escopados/contextualizados por
+unidade administrativa (filial), não apenas globalmente.
+
 ## TypeScript Best Practices
 
 - Use strict type checking
