@@ -1,12 +1,22 @@
 <div class="camera-stream relative aspect-video overflow-hidden rounded-md border border-border bg-black">
   <video
     #video
-    class="size-full object-contain"
+    class="size-full"
+    crossorigin="anonymous"
     muted
     playsinline
     autoplay
+    [style.object-fit]="objectFit()"
     [attr.aria-label]="title()"
   ></video>
+
+  <canvas
+    #overlay
+    class="pointer-events-none absolute inset-0 size-full"
+    aria-hidden="true"
+  ></canvas>
+
+  <span class="sr-only" aria-live="polite">{{ plateAnnouncement() }}</span>
 
   <div
     class="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent p-3 text-white"
@@ -19,6 +29,21 @@
       </span>
     }
   </div>
+
+  @if (anpr() && isLive()) {
+    <span
+      class="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-[10px] font-medium text-white"
+      aria-hidden="true"
+    >
+      @if (anprError()) {
+        <ng-icon name="lucideTriangleAlert" class="text-amber-400" />
+        <span>{{ anprError() }}</span>
+      } @else {
+        <span class="size-1.5 animate-pulse rounded-full bg-emerald-400"></span>
+        <span>Reconhecendo placa</span>
+      }
+    </span>
+  }
 
   @if (status() === 'loading') {
     <div
