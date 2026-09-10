@@ -1,0 +1,9 @@
+/* `color-scheme` separado por tema para que controles nativos
+   (scrollbars, inputs, date pickers) acompanhem claro/escuro. */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}

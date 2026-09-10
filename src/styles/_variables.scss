@@ -1,0 +1,34 @@
+/*
+ * Variáveis de layout, motion e tokens de layout do design.md.
+ *
+ * As cores (design tokens) são definidas em `src/styles.css` no bloco
+ * `@theme` (tokens estáticos do design) e nos blocos `:root`/`.dark`
+ * (tokens semânticos), expostos ao Tailwind via `@theme inline`. NÃO
+ * redeclare cores aqui — use sempre os tokens canônicos (`--background`,
+ * `--foreground`, `--primary`, `--muted-foreground`, `--border`, ...).
+ *
+ * Os nomes `--color-*` pertencem ao namespace do Tailwind e só existem em
+ * runtime quando alguma utilidade os exige; nunca os referencie em SCSS.
+ */
+:root {
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 64px;
+  --header-height: 64px;
+
+  /* Design tokens — layout (design.md) */
+  --page-max-width: 1200px;
+  --section-gap: 80px;
+  --element-gap: 8px;
+  --spacing-unit: 4px;
+
+  /* Transições */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* Tints/tons derivados do primary (fora do namespace Tailwind).
+     Use para estados hover/ativos sutis sem inventar nova cor. */
+  --primary-light: color-mix(in oklch, var(--primary), white 30%);
+  --primary-dark: color-mix(in oklch, var(--primary), black 40%);
+}
