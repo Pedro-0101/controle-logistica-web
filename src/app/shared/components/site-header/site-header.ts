@@ -4,10 +4,11 @@ import { NgIcon } from '@ng-icons/core';
 
 import { ThemeService } from '@/shared/services/theme.service';
 import { ZardButtonComponent } from '@/shared/components/button';
+import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
 
 @Component({
   selector: 'app-site-header',
-  imports: [RouterLink, RouterLinkActive, NgIcon, ZardButtonComponent],
+  imports: [RouterLink, RouterLinkActive, NgIcon, ZardButtonComponent, ZardNavigationMenuImports],
   template: `
     <header class="flex h-14 items-center gap-6 border-b border-border bg-background px-4 sm:px-6">
       <a
@@ -21,6 +22,30 @@ import { ZardButtonComponent } from '@/shared/components/button';
 
       <nav class="flex items-center gap-1" aria-label="Navegação principal">
         <a z-button zType="ghost" zSize="sm" routerLink="/home" routerLinkActive="bg-accent">Início</a>
+
+        <z-navigation-menu>
+          <div z-navigation-menu-list>
+            <div z-navigation-menu-item>
+              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="usuariosMenu">
+                Usuários
+              </button>
+              <ng-template #usuariosMenu>
+                <div z-navigation-menu-content class="w-56">
+                  <a
+                    z-navigation-menu-link
+                    routerLink="/usuarios"
+                    routerLinkActive
+                    #linkUsuarios="routerLinkActive"
+                    [zActive]="linkUsuarios.isActive"
+                  >
+                    <ng-icon name="lucideUsers" aria-hidden="true" />
+                    Gerenciar usuários
+                  </a>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </z-navigation-menu>
       </nav>
 
       <div class="ml-auto flex items-center gap-1">
