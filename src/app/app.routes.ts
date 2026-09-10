@@ -21,5 +21,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/users/users').then((m) => m.Users),
     title: 'Gerenciar usuários',
   },
+  {
+    path: 'unidades',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/admin-unities/admin-unities').then((m) => m.AdminUnities),
+    title: 'Gerenciar unidades',
+  },
   { path: '**', redirectTo: 'home' },
 ];

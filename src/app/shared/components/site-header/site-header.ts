@@ -44,6 +44,26 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
                 </div>
               </ng-template>
             </div>
+
+            <div z-navigation-menu-item>
+              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="unidadesMenu">
+                Unidades
+              </button>
+              <ng-template #unidadesMenu>
+                <div z-navigation-menu-content class="w-56">
+                  <a
+                    z-navigation-menu-link
+                    routerLink="/unidades"
+                    routerLinkActive
+                    #linkUnidades="routerLinkActive"
+                    [zActive]="linkUnidades.isActive"
+                  >
+                    <ng-icon name="lucideBuilding2" aria-hidden="true" />
+                    Gerenciar unidades
+                  </a>
+                </div>
+              </ng-template>
+            </div>
           </div>
         </z-navigation-menu>
       </nav>
