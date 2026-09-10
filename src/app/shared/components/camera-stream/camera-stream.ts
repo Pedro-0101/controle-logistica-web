@@ -27,8 +27,9 @@ import {
 type StreamStatus = 'loading' | 'playing' | 'error';
 
 const ANPR_INTERVAL_MS = 700;
+const CAPTURE_MAX_DIM = 640;
 const CAPTURE_QUALITY = 0.7;
-const REQUEST_TIMEOUT_MS = 3000;
+const REQUEST_TIMEOUT_MS = 10_000;
 const PLATE_HOLD_MS = 1500;
 
 interface DetectedPlate {
@@ -74,6 +75,7 @@ export class CameraStream implements OnDestroy {
 
   private hls?: Hls;
   private captureCanvas?: HTMLCanvasElement;
+  private captureScale = 1;
   private anprTimer?: ReturnType<typeof setTimeout>;
   private anprInFlight = false;
   private destroyed = false;
@@ -269,11 +271,15 @@ export class CameraStream implements OnDestroy {
       return null;
     }
 
+    this.captureScale = Math.min(1, CAPTURE_MAX_DIM / width, CAPTURE_MAX_DIM / height);
+    const captureWidth = Math.round(width * this.captureScale);
+    const captureHeight = Math.round(height * this.captureScale);
+
     if (!this.captureCanvas) {
       this.captureCanvas = document.createElement('canvas');
     }
-    this.captureCanvas.width = width;
-    this.captureCanvas.height = height;
+    this.captureCanvas.width = captureWidth;
+    this.captureCanvas.height = captureHeight;
 
     const ctx = this.captureCanvas.getContext('2d');
     if (!ctx) {
@@ -283,13 +289,15 @@ export class CameraStream implements OnDestroy {
     }
 
     try {
-      ctx.drawImage(video, 0, 0, width, height);
+      ctx.drawImage(video, 0, 0, captureWidth, captureHeight);
       const dataUrl = this.captureCanvas.toDataURL('image/jpeg', CAPTURE_QUALITY);
       const comma = dataUrl.indexOf(',');
       const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
       this.logger.debug('Frame capturado do vídeo', {
-        width,
-        height,
+        videoWidth: width,
+        videoHeight: height,
+        captureWidth,
+        captureHeight,
         base64Length: base64.length,
       });
       return base64;
@@ -306,12 +314,14 @@ export class CameraStream implements OnDestroy {
 
   private handleRecognition(result: AnprRecognition): void {
     if (result.box && result.box.length === 4) {
+      const s = this.captureScale;
+      const box: PlateBox = [result.box[0] / s, result.box[1] / s, result.box[2] / s, result.box[3] / s];
       this.anprError.set(null);
-      this.plate.set({ box: result.box, placa: result.placa, at: Date.now() });
+      this.plate.set({ box, placa: result.placa, at: Date.now() });
       this.logger.info('Placa reconhecida', {
         placa: result.placa,
         confianca: result.confianca,
-        box: result.box,
+        box,
       });
       this.drawOverlay();
       return;
