@@ -18,7 +18,6 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   role?: UserRole;
-  companyId?: string | null;
 }
 
 /** Corpo do PATCH /user/{id}. */
@@ -27,5 +26,4 @@ export interface UpdateUserRequest {
   email?: string;
   password?: string;
   role?: UserRole;
-  companyId?: string | null;
 }

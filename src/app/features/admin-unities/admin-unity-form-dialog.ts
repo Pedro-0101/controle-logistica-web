@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, inject, signal, viewChild } from '@angular/core';
 import type { ElementRef } from '@angular/core';
 import { FormField, FormRoot, email, form, required } from '@angular/forms/signals';
 import type { FieldState } from '@angular/forms/signals';
@@ -8,12 +8,10 @@ import { toast } from 'ngx-sonner';
 import type {
   AdminUnity,
   ApiError,
-  Company,
   CreateAdminUnityRequest,
   UpdateAdminUnityRequest,
 } from '@/shared/models';
 import { AdminUnityService } from '@/shared/services/admin-unity.service';
-import { CompanyService } from '@/shared/services/company.service';
 import { LoggerService } from '@/shared/services/logger.service';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
@@ -32,7 +30,6 @@ interface AdminUnityFormModel {
   address: string;
   phone: string;
   email: string;
-  companyId: string;
   active: boolean;
 }
 
@@ -109,21 +106,6 @@ interface AdminUnityFormModel {
         }
       </z-form-field>
 
-      <z-form-field>
-        <z-form-label [zRequired]="true" for="unity-company">Empresa</z-form-label>
-        <z-form-control>
-          <select z-input id="unity-company" [formField]="unitForm.companyId">
-            <option value="" disabled>Selecione uma empresa</option>
-            @for (company of companies(); track company.id) {
-              <option [value]="company.id">{{ company.name }}</option>
-            }
-          </select>
-        </z-form-control>
-        @if (unitForm.companyId().invalid() && unitForm.companyId().touched()) {
-          <z-form-message id="unity-company-error" [zError]="true">{{ firstError(unitForm.companyId()) }}</z-form-message>
-        }
-      </z-form-field>
-
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <z-form-field>
           <z-form-label for="unity-phone">Telefone</z-form-label>
@@ -185,16 +167,14 @@ interface AdminUnityFormModel {
     </form>
   `,
 })
-export class AdminUnityFormDialog implements OnInit {
+export class AdminUnityFormDialog {
   private readonly dialogRef = inject(ZardDialogRef<AdminUnityFormDialog, AdminUnity>);
   private readonly data = inject<AdminUnity | null>(Z_MODAL_DATA);
   private readonly adminUnityService = inject(AdminUnityService);
-  private readonly companyService = inject(CompanyService);
   private readonly logger = inject(LoggerService).create('AdminUnityFormDialog');
 
   protected readonly isEdit = computed(() => this.data !== null);
   protected readonly submitting = signal(false);
-  protected readonly companies = signal<Company[]>([]);
 
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
 
@@ -204,7 +184,6 @@ export class AdminUnityFormDialog implements OnInit {
     address: this.data?.address ?? '',
     phone: this.data?.phone ?? '',
     email: this.data?.email ?? '',
-    companyId: this.data?.companyId ?? '',
     active: this.data?.active ?? true,
   });
 
@@ -214,7 +193,6 @@ export class AdminUnityFormDialog implements OnInit {
       required(fields.name, { message: 'Informe o nome.' });
       required(fields.code, { message: 'Informe o código.' });
       required(fields.address, { message: 'Informe o endereço.' });
-      required(fields.companyId, { message: 'Selecione a empresa.' });
       email(fields.email, {
         message: 'E-mail inválido.',
         when: () => this.model().email.length > 0,
@@ -253,10 +231,6 @@ export class AdminUnityFormDialog implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    void this.carregarEmpresas();
-  }
-
   protected firstError(field: FieldState<string, string>): string {
     const errors = field.errors();
     return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
@@ -266,21 +240,11 @@ export class AdminUnityFormDialog implements OnInit {
     this.dialogRef.close();
   }
 
-  private async carregarEmpresas(): Promise<void> {
-    try {
-      this.companies.set(await firstValueFrom(this.companyService.list()));
-    } catch (error) {
-      this.logger.error('Falha ao carregar empresas', error);
-      toast.error('Falha ao carregar empresas.');
-    }
-  }
-
   private async criarUnidade(model: AdminUnityFormModel): Promise<AdminUnity> {
     const payload: CreateAdminUnityRequest = {
       name: model.name,
       code: model.code,
       address: model.address,
-      companyId: model.companyId,
       active: model.active,
       ...(model.phone ? { phone: model.phone } : {}),
       ...(model.email ? { email: model.email } : {}),
@@ -293,7 +257,6 @@ export class AdminUnityFormDialog implements OnInit {
       name: model.name,
       code: model.code,
       address: model.address,
-      companyId: model.companyId,
       active: model.active,
       ...(model.phone ? { phone: model.phone } : {}),
       ...(model.email ? { email: model.email } : {}),

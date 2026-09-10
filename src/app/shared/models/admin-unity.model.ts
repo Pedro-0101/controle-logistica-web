@@ -19,7 +19,6 @@ export interface CreateAdminUnityRequest {
   address: string;
   phone?: string;
   email?: string;
-  companyId: string;
   active?: boolean;
 }
 
@@ -30,6 +29,5 @@ export interface UpdateAdminUnityRequest {
   address?: string;
   phone?: string;
   email?: string;
-  companyId?: string;
   active?: boolean;
 }
