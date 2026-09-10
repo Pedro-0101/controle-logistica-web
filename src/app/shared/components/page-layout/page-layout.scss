@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.page-layout {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+@media (max-width: 640px) {
+  .page-layout {
+    padding: 16px;
+  }
+}
