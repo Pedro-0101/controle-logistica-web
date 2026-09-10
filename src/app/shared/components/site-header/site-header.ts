@@ -106,6 +106,26 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
               </ng-template>
             </div>
 
+            <div z-navigation-menu-item>
+              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="camerasMenu">
+                Câmeras
+              </button>
+              <ng-template #camerasMenu>
+                <div z-navigation-menu-content class="w-56">
+                  <a
+                    z-navigation-menu-link
+                    routerLink="/cameras"
+                    routerLinkActive
+                    #linkCameras="routerLinkActive"
+                    [zActive]="linkCameras.isActive"
+                  >
+                    <ng-icon name="lucideCamera" aria-hidden="true" />
+                    Gerenciar câmeras
+                  </a>
+                </div>
+              </ng-template>
+            </div>
+
             @if (isRoot()) {
               <div z-navigation-menu-item>
                 <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="empresasMenu">
