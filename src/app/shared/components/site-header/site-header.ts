@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
 
+import { SessionService } from '@/shared/core/auth';
 import { ThemeService } from '@/shared/services/theme.service';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
@@ -17,7 +18,7 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
         aria-label="Ir para a home"
       >
         <ng-icon name="lucideHome" aria-hidden="true" class="size-5" />
-        Controle Logística
+        {{ brandName() }}
       </a>
 
       <nav class="flex items-center gap-1" aria-label="Navegação principal">
@@ -64,6 +65,28 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
                 </div>
               </ng-template>
             </div>
+
+            @if (isRoot()) {
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="empresasMenu">
+                  Empresas
+                </button>
+                <ng-template #empresasMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/empresas"
+                      routerLinkActive
+                      #linkEmpresas="routerLinkActive"
+                      [zActive]="linkEmpresas.isActive"
+                    >
+                      <ng-icon name="lucideBuilding" aria-hidden="true" />
+                      Gerenciar empresas
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
+            }
           </div>
         </z-navigation-menu>
       </nav>
@@ -86,4 +109,11 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
 })
 export class SiteHeader {
   protected readonly temaSvc = inject(ThemeService);
+  private readonly session = inject(SessionService);
+
+  /** `true` quando o usuário logado é root (sem empresa vinculada). */
+  protected readonly isRoot = computed(() => this.session.usuario()?.companyId === null);
+
+  /** Nome exibido na marca da navbar (razão social da empresa, quando houver). */
+  protected readonly brandName = computed(() => this.session.usuario()?.company?.companyName ?? 'Controle Logística');
 }

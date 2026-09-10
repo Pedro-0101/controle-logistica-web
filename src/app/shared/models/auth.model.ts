@@ -1,3 +1,5 @@
+import type { CompanySummary } from './company.model';
+
 /** Usuário autenticado, conforme retornado pela API. */
 export interface User {
   id: string;
@@ -5,6 +7,7 @@ export interface User {
   email: string;
   role: string;
   companyId: string | null;
+  company?: CompanySummary | null;
 }
 
 /** Credenciais de acesso (POST /auth/login). */
@@ -17,6 +20,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   access_token: string;
   user: User;
+  company?: CompanySummary | null;
 }
 
 /** Resultado de autenticação normalizado para o front-end. */
@@ -31,4 +35,5 @@ export interface MeResponse {
   email: string;
   role: string;
   companyId: string | null;
+  company?: CompanySummary | null;
 }

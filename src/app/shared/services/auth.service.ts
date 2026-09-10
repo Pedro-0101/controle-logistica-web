@@ -18,7 +18,10 @@ export class AuthService {
    */
   login(credentials: LoginRequest, remember = true): Observable<LoginResult> {
     return this.api.post<LoginResponse>('/auth/login', credentials).pipe(
-      map((response) => ({ token: response.access_token, user: response.user })),
+      map((response) => ({
+        token: response.access_token,
+        user: { ...response.user, company: response.company },
+      })),
       tap((result) => {
         this.tokenService.setToken(result.token, remember);
         this.tokenService.saveRememberedUser(
@@ -36,6 +39,7 @@ export class AuthService {
         email: response.email,
         role: response.role,
         companyId: response.companyId,
+        company: response.company,
       })),
     );
   }

@@ -27,5 +27,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin-unities/admin-unities').then((m) => m.AdminUnities),
     title: 'Gerenciar unidades',
   },
+  {
+    path: 'empresas',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/companies/companies').then((m) => m.Companies),
+    title: 'Gerenciar empresas',
+  },
   { path: '**', redirectTo: 'home' },
 ];
