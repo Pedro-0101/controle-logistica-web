@@ -1,0 +1,52 @@
+<div class="camera-stream relative aspect-video overflow-hidden rounded-md border border-border bg-black">
+  <video
+    #video
+    class="size-full object-contain"
+    muted
+    playsinline
+    autoplay
+    [attr.aria-label]="title()"
+  ></video>
+
+  <div
+    class="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent p-3 text-white"
+  >
+    <span class="truncate text-sm font-medium">{{ title() }}</span>
+    @if (isLive()) {
+      <span class="flex shrink-0 items-center gap-1.5 text-xs">
+        <span class="size-2 animate-pulse rounded-full bg-red-500" aria-hidden="true"></span>
+        AO VIVO
+      </span>
+    }
+  </div>
+
+  @if (status() === 'loading') {
+    <div
+      class="absolute inset-0 flex items-center justify-center bg-black/40"
+      role="status"
+      aria-live="polite"
+    >
+      <gp-loading-spinner message="Conectando à câmera..." />
+    </div>
+  }
+
+  @if (status() === 'error') {
+    <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-4 text-center">
+      <p class="text-sm text-white">{{ errorMessage() }}</p>
+      <button z-button zType="outline" zSize="sm" (click)="retry()">Tentar novamente</button>
+    </div>
+  }
+
+  @if (status() === 'playing' && autoplayBlocked()) {
+    <button
+      type="button"
+      class="absolute inset-0 flex items-center justify-center bg-black/60"
+      (click)="play()"
+      aria-label="Reproduzir vídeo"
+    >
+      <span class="flex size-16 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+        <span class="ml-1 size-0 border-y-8 border-l-[14px] border-y-transparent border-l-white"></span>
+      </span>
+    </button>
+  }
+</div>
