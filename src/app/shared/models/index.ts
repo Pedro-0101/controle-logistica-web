@@ -6,3 +6,4 @@ export * from './base.model';
 export * from './company.model';
 export * from './point.model';
 export * from './user.model';
+export * from './vehicle.model';

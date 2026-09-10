@@ -86,6 +86,26 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
               </ng-template>
             </div>
 
+            <div z-navigation-menu-item>
+              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="veiculosMenu">
+                Veículos
+              </button>
+              <ng-template #veiculosMenu>
+                <div z-navigation-menu-content class="w-56">
+                  <a
+                    z-navigation-menu-link
+                    routerLink="/veiculos"
+                    routerLinkActive
+                    #linkVeiculos="routerLinkActive"
+                    [zActive]="linkVeiculos.isActive"
+                  >
+                    <ng-icon name="lucideCar" aria-hidden="true" />
+                    Gerenciar veículos
+                  </a>
+                </div>
+              </ng-template>
+            </div>
+
             @if (isRoot()) {
               <div z-navigation-menu-item>
                 <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="empresasMenu">
