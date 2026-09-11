@@ -43,7 +43,8 @@ export class ZardTooltipDirective implements OnDestroy {
       'color: white',
       'background: hsl(240 3.7% 15.9%)',
       'border-radius: 6px',
-      'white-space: nowrap',
+      'white-space: pre-line',
+      'max-width: 280px',
       'pointer-events: none',
       'animation: tooltip-fade-in 0.15s ease-out',
     ];

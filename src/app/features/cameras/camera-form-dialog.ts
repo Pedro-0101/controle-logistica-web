@@ -18,15 +18,19 @@ import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { CameraService } from '@/shared/services/camera.service';
 import { PointService } from '@/shared/services/point.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { NgIcon } from '@ng-icons/core';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
 import {
   ZardFormControlComponent,
+  ZardFormDescriptionComponent,
   ZardFormFieldComponent,
   ZardFormLabelComponent,
   ZardFormMessageComponent,
+  ZardFormStepperComponent,
 } from '@/shared/components/form';
 import { ZardInputDirective } from '@/shared/components/input';
+import { ZardTooltipDirective } from '@/shared/components/tooltip';
 
 interface CameraFormModel {
   adminUnityId: string;
@@ -41,6 +45,8 @@ interface CameraFormModel {
   description: string;
 }
 
+const STEP_LABELS = ['Localização', 'Identificação', 'Acesso'];
+
 const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
   { value: 'digest', label: 'Digest' },
   { value: 'basic', label: 'Basic' },
@@ -51,181 +57,236 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
   imports: [
     FormRoot,
     FormField,
+    NgIcon,
     ZardButtonComponent,
     ZardFormFieldComponent,
     ZardFormLabelComponent,
     ZardFormControlComponent,
+    ZardFormDescriptionComponent,
     ZardFormMessageComponent,
+    ZardFormStepperComponent,
     ZardInputDirective,
+    ZardTooltipDirective,
   ],
   template: `
     <form [formRoot]="cameraForm" class="flex flex-col gap-4" novalidate>
-      <z-form-field>
-        <z-form-label [zRequired]="true" for="camera-admin-unity">Unidade administrativa</z-form-label>
-        <z-form-control>
-          <select z-input id="camera-admin-unity" [formField]="cameraForm.adminUnityId">
-            <option value="" disabled>Selecione uma unidade</option>
-            @for (unit of adminUnities(); track unit.id) {
-              <option [value]="unit.id">{{ unit.name }}</option>
-            }
-          </select>
-        </z-form-control>
-        @if (cameraForm.adminUnityId().invalid() && cameraForm.adminUnityId().touched()) {
-          <z-form-message id="camera-admin-unity-error" [zError]="true">{{ firstError(cameraForm.adminUnityId()) }}</z-form-message>
-        }
-      </z-form-field>
+      <z-form-stepper
+        [steps]="stepLabels"
+        [currentStep]="currentStep()"
+        (stepChange)="onStepChange($event)"
+      />
 
-      <z-form-field>
-        <z-form-label [zRequired]="true" for="camera-point">Ponto de controle</z-form-label>
-        <z-form-control>
-          <select z-input id="camera-point" [formField]="cameraForm.pointId">
-            <option value="" disabled>Selecione um ponto</option>
-            @for (point of filteredPoints(); track point.id) {
-              <option [value]="point.id">{{ point.name }}</option>
-            }
-          </select>
-        </z-form-control>
-        @if (cameraForm.pointId().invalid() && cameraForm.pointId().touched()) {
-          <z-form-message id="camera-point-error" [zError]="true">{{ firstError(cameraForm.pointId()) }}</z-form-message>
-        }
-      </z-form-field>
-
-      <z-form-field>
-        <z-form-label [zRequired]="true" for="camera-name">Nome</z-form-label>
-        <z-form-control>
-          <input
-            z-input
-            #nameInput
-            id="camera-name"
-            type="text"
-            [formField]="cameraForm.name"
-            autocomplete="off"
-            placeholder="Câmera Portaria 1"
-            [attr.aria-invalid]="cameraForm.name().invalid() && cameraForm.name().touched()"
-            [attr.aria-describedby]="cameraForm.name().errors().length ? 'camera-name-error' : null"
-          />
-        </z-form-control>
-        @if (cameraForm.name().invalid() && cameraForm.name().touched()) {
-          <z-form-message id="camera-name-error" [zError]="true">{{ firstError(cameraForm.name()) }}</z-form-message>
-        }
-      </z-form-field>
-
-      <div class="grid grid-cols-2 gap-4">
+      @if (currentStep() === 0) {
         <z-form-field>
-          <z-form-label [zRequired]="true" for="camera-ip">Endereço IP</z-form-label>
+          <z-form-label [zRequired]="true" for="camera-admin-unity">Unidade administrativa</z-form-label>
           <z-form-control>
-            <input
-              z-input
-              id="camera-ip"
-              type="text"
-              [formField]="cameraForm.ip"
-              autocomplete="off"
-              placeholder="192.168.1.100"
-              [attr.aria-invalid]="cameraForm.ip().invalid() && cameraForm.ip().touched()"
-              [attr.aria-describedby]="cameraForm.ip().errors().length ? 'camera-ip-error' : null"
-            />
+            <select z-input id="camera-admin-unity" [formField]="cameraForm.adminUnityId">
+              <option value="" disabled>Selecione uma unidade</option>
+              @for (unit of adminUnities(); track unit.id) {
+                <option [value]="unit.id">{{ unit.name }}</option>
+              }
+            </select>
           </z-form-control>
-          @if (cameraForm.ip().invalid() && cameraForm.ip().touched()) {
-            <z-form-message id="camera-ip-error" [zError]="true">{{ firstError(cameraForm.ip()) }}</z-form-message>
+          <z-form-description>Unidade física à qual a câmera pertence.</z-form-description>
+          @if (cameraForm.adminUnityId().invalid() && cameraForm.adminUnityId().touched()) {
+            <z-form-message id="camera-admin-unity-error" [zError]="true">{{ firstError(cameraForm.adminUnityId()) }}</z-form-message>
           }
         </z-form-field>
 
         <z-form-field>
-          <z-form-label for="camera-port">Porta</z-form-label>
+          <z-form-label [zRequired]="true" for="camera-point">Ponto de controle</z-form-label>
           <z-form-control>
-            <input
-              z-input
-              id="camera-port"
-              type="number"
-              [formField]="cameraForm.port"
-              autocomplete="off"
-              placeholder="80"
-            />
+            <select z-input id="camera-point" [formField]="cameraForm.pointId">
+              <option value="" disabled>Selecione um ponto</option>
+              @for (point of filteredPoints(); track point.id) {
+                <option [value]="point.id">{{ point.name }}</option>
+              }
+            </select>
           </z-form-control>
-        </z-form-field>
-      </div>
-
-      <z-form-field>
-        <z-form-label for="camera-username">Usuário</z-form-label>
-        <z-form-control>
-          <input
-            z-input
-            id="camera-username"
-            type="text"
-            [formField]="cameraForm.username"
-            autocomplete="off"
-            placeholder="admin"
-          />
-        </z-form-control>
-      </z-form-field>
-
-      @if (isCreate()) {
-        <z-form-field>
-          <z-form-label for="camera-password">Senha</z-form-label>
-          <z-form-control>
-            <input
-              z-input
-              id="camera-password"
-              type="password"
-              [formField]="cameraForm.password"
-              autocomplete="new-password"
-              placeholder="••••••"
-            />
-          </z-form-control>
+          <z-form-description>Ponto de controle onde a câmera está instalada.</z-form-description>
+          @if (cameraForm.pointId().invalid() && cameraForm.pointId().touched()) {
+            <z-form-message id="camera-point-error" [zError]="true">{{ firstError(cameraForm.pointId()) }}</z-form-message>
+          }
         </z-form-field>
       }
 
-      <z-form-field>
-        <z-form-label for="camera-auth-type">Tipo de autenticação</z-form-label>
-        <z-form-control>
-          <select z-input id="camera-auth-type" [formField]="cameraForm.authType">
-            @for (option of authTypeOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
+      @if (currentStep() === 1) {
+        <z-form-field>
+          <z-form-label [zRequired]="true" for="camera-name">Nome</z-form-label>
+          <z-form-control>
+            <input
+              z-input
+              #nameInput
+              id="camera-name"
+              type="text"
+              [formField]="cameraForm.name"
+              autocomplete="off"
+              placeholder="Câmera Portaria 1"
+              [attr.aria-invalid]="cameraForm.name().invalid() && cameraForm.name().touched()"
+              [attr.aria-describedby]="cameraForm.name().errors().length ? 'camera-name-error' : null"
+            />
+          </z-form-control>
+          @if (cameraForm.name().invalid() && cameraForm.name().touched()) {
+            <z-form-message id="camera-name-error" [zError]="true">{{ firstError(cameraForm.name()) }}</z-form-message>
+          }
+        </z-form-field>
+
+        <div class="grid grid-cols-2 gap-4">
+          <z-form-field>
+            <z-form-label [zRequired]="true" for="camera-ip">Endereço IP</z-form-label>
+            <z-form-control>
+              <input
+                z-input
+                id="camera-ip"
+                type="text"
+                [formField]="cameraForm.ip"
+                autocomplete="off"
+                placeholder="192.168.1.100"
+                [attr.aria-invalid]="cameraForm.ip().invalid() && cameraForm.ip().touched()"
+                [attr.aria-describedby]="cameraForm.ip().errors().length ? 'camera-ip-error' : null"
+              />
+            </z-form-control>
+            <z-form-description>Endereço IPv4 da câmera na rede local.</z-form-description>
+            @if (cameraForm.ip().invalid() && cameraForm.ip().touched()) {
+              <z-form-message id="camera-ip-error" [zError]="true">{{ firstError(cameraForm.ip()) }}</z-form-message>
             }
-          </select>
-        </z-form-control>
-      </z-form-field>
+          </z-form-field>
 
-      <z-form-field>
-        <z-form-label for="camera-snapshot-url">URL do snapshot</z-form-label>
-        <z-form-control>
-          <input
-            z-input
-            id="camera-snapshot-url"
-            type="text"
-            [formField]="cameraForm.snapshotUrl"
-            autocomplete="off"
-            placeholder="http://192.168.1.100/ISAPI/Streaming/channels/101/picture"
-          />
-        </z-form-control>
-      </z-form-field>
+          <z-form-field>
+            <z-form-label for="camera-port">Porta</z-form-label>
+            <z-form-control>
+              <input
+                z-input
+                id="camera-port"
+                type="number"
+                [formField]="cameraForm.port"
+                autocomplete="off"
+                placeholder="80"
+              />
+            </z-form-control>
+            <z-form-description>Porta HTTP da câmera (padrão: 80).</z-form-description>
+          </z-form-field>
+        </div>
 
-      <z-form-field>
-        <z-form-label for="camera-description">Descrição</z-form-label>
-        <z-form-control>
-          <input
-            z-input
-            id="camera-description"
-            type="text"
-            [formField]="cameraForm.description"
-            autocomplete="off"
-            placeholder="Entrada principal"
-          />
-        </z-form-control>
-      </z-form-field>
+        <z-form-field>
+          <z-form-label for="camera-description">Descrição</z-form-label>
+          <z-form-control>
+            <input
+              z-input
+              id="camera-description"
+              type="text"
+              [formField]="cameraForm.description"
+              autocomplete="off"
+              placeholder="Entrada principal"
+            />
+          </z-form-control>
+          <z-form-description>Informações complementares sobre a câmera.</z-form-description>
+        </z-form-field>
+      }
 
-      <div class="flex items-center justify-end gap-2 pt-2">
-        <button z-button zType="ghost" zSize="default" type="button" (click)="cancelar()">Cancelar</button>
+      @if (currentStep() === 2) {
+        <z-form-field>
+          <z-form-label for="camera-username">Usuário</z-form-label>
+          <z-form-control>
+            <input
+              z-input
+              id="camera-username"
+              type="text"
+              [formField]="cameraForm.username"
+              autocomplete="off"
+              placeholder="admin"
+            />
+          </z-form-control>
+          <z-form-description>Usuário de acesso à câmera (se aplicável).</z-form-description>
+        </z-form-field>
+
+        @if (isCreate()) {
+          <z-form-field>
+            <z-form-label for="camera-password">Senha</z-form-label>
+            <z-form-control>
+              <input
+                z-input
+                id="camera-password"
+                type="password"
+                [formField]="cameraForm.password"
+                autocomplete="new-password"
+                placeholder="••••••"
+              />
+            </z-form-control>
+            <z-form-description>Senha de acesso à câmera (se aplicável).</z-form-description>
+          </z-form-field>
+        }
+
+        <z-form-field>
+          <z-form-label for="camera-auth-type">Tipo de autenticação</z-form-label>
+          <z-form-control>
+            <select z-input id="camera-auth-type" [formField]="cameraForm.authType">
+              @for (option of authTypeOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </z-form-control>
+          <z-form-description>Tipo de autenticação usada pela câmera.</z-form-description>
+        </z-form-field>
+
+        <z-form-field>
+          <div class="flex items-center gap-1.5">
+            <z-form-label for="camera-snapshot-url">URL do snapshot</z-form-label>
+            <ng-icon
+              name="lucideCircleHelp"
+              class="size-4 text-muted-foreground"
+              [zTooltip]="'Campo opcional.\nO backend detecta automaticamente o path correto da câmera.\nInforme apenas se precisar forçar um valor específico.'"
+              zTooltipPosition="top"
+            />
+          </div>
+          <z-form-control>
+            <input
+              z-input
+              id="camera-snapshot-url"
+              type="text"
+              [formField]="cameraForm.snapshotUrl"
+              autocomplete="off"
+              placeholder="http://192.168.1.100/ISAPI/Streaming/channels/101/picture"
+            />
+          </z-form-control>
+          <z-form-description>Opcional. Se vazio, o backend detecta automaticamente.</z-form-description>
+        </z-form-field>
+      }
+
+      <div class="flex items-center justify-between pt-2">
         <button
           z-button
-          zType="default"
+          zType="ghost"
           zSize="default"
-          type="submit"
-          [zLoading]="submitting()"
-          [zDisabled]="cameraForm().invalid()"
+          type="button"
+          (click)="currentStep() > 0 ? onStepChange(currentStep() - 1) : cancelar()"
         >
-          {{ isCreate() ? 'Criar' : 'Salvar' }}
+          {{ currentStep() > 0 ? 'Anterior' : 'Cancelar' }}
         </button>
+
+        @if (currentStep() < totalSteps - 1) {
+          <button
+            z-button
+            zType="default"
+            zSize="default"
+            type="button"
+            (click)="onStepChange(currentStep() + 1)"
+            [zDisabled]="!isCurrentStepValid()"
+          >
+            Próximo
+          </button>
+        } @else {
+          <button
+            z-button
+            zType="default"
+            zSize="default"
+            type="submit"
+            [zLoading]="submitting()"
+            [zDisabled]="cameraForm().invalid()"
+          >
+            {{ isCreate() ? 'Criar' : 'Salvar' }}
+          </button>
+        }
       </div>
     </form>
   `,
@@ -243,6 +304,9 @@ export class CameraFormDialog implements OnInit {
   protected readonly adminUnities = signal<AdminUnity[]>([]);
   protected readonly points = signal<Point[]>([]);
   protected readonly authTypeOptions = AUTH_TYPE_OPTIONS;
+  protected readonly stepLabels = STEP_LABELS;
+  protected readonly totalSteps = STEP_LABELS.length;
+  protected readonly currentStep = signal(0);
 
   protected readonly filteredPoints = computed(() => {
     const adminUnityId = this.model().adminUnityId;
@@ -317,6 +381,28 @@ export class CameraFormDialog implements OnInit {
 
   protected cancelar(): void {
     this.dialogRef.close();
+  }
+
+  protected onStepChange(index: number): void {
+    if (index < this.currentStep()) {
+      this.currentStep.set(index);
+      return;
+    }
+    if (this.isCurrentStepValid()) {
+      this.currentStep.set(index);
+    }
+  }
+
+  protected isCurrentStepValid(): boolean {
+    const m = this.model();
+    switch (this.currentStep()) {
+      case 0:
+        return !!m.adminUnityId && !!m.pointId;
+      case 1:
+        return !!m.name && !!m.ip;
+      default:
+        return true;
+    }
   }
 
   private async carregarOpcoes(): Promise<void> {

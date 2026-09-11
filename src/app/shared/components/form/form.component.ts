@@ -54,3 +54,12 @@ export class ZardFormMessageComponent {
     mergeClasses('block text-sm', this.zError() ? 'text-destructive' : 'text-muted-foreground'),
   );
 }
+
+@Component({
+  selector: 'z-form-description',
+  template: `<ng-content />`,
+  encapsulation: ViewEncapsulation.None,
+  host: { 'class': 'block text-sm text-muted-foreground' },
+  exportAs: 'zFormDescription',
+})
+export class ZardFormDescriptionComponent {}
