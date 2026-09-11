@@ -1,7 +1,7 @@
 import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import type { CreateUserRequest, ManagedUser, UpdateUserRequest } from '@/shared/models';
+import type { CreateUserRequest, ManagedUser, Point, UpdateUserRequest } from '@/shared/models';
 import { ApiClientService } from './api-client.service';
 
 /**
@@ -29,5 +29,20 @@ export class UserService {
   /** Remove permanentemente um usuário. */
   remove(id: string): Observable<void> {
     return this.api.delete(`/user/${id}`);
+  }
+
+  /** Lista os pontos vinculados a um usuário. */
+  listPoints(userId: string): Observable<Point[]> {
+    return this.api.get<Point[]>(`/user/${userId}/points`);
+  }
+
+  /** Vincula pontos a um usuário (substitui a vinculação existente). */
+  updatePoints(userId: string, pointIds: string[]): Observable<Point[]> {
+    return this.api.patch<Point[]>(`/user/${userId}/points`, { pointIds });
+  }
+
+  /** Remove a vinculação de pontos de um usuário. */
+  removePoints(userId: string): Observable<void> {
+    return this.api.delete(`/user/${userId}/points`);
   }
 }

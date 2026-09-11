@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
 import { firstValueFrom, take } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { NgIcon } from '@ng-icons/core';
@@ -13,6 +13,7 @@ import { ZardTableImports } from '@/shared/components/table';
 import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { CompanyService } from '@/shared/services/company.service';
 import { PointService } from '@/shared/services/point.service';
+import { SessionService } from '@/shared/core/auth/session.service';
 import { LoggerService } from '@/shared/services/logger.service';
 import type { AdminUnity, Company, Point, PointType } from '@/shared/models';
 
@@ -46,10 +47,12 @@ const POINT_TYPE_LABELS: Record<PointType, string> = {
           <p class="text-sm text-muted-foreground">Cadastre, edite e remova os pontos de controle do sistema.</p>
         </div>
 
-        <button z-button zSize="sm" type="button" (click)="abrirCriar()">
-          <ng-icon name="lucidePlus" aria-hidden="true" />
-          Novo ponto
-        </button>
+        @if (canManage()) {
+          <button z-button zSize="sm" type="button" (click)="abrirCriar()">
+            <ng-icon name="lucidePlus" aria-hidden="true" />
+            Novo ponto
+          </button>
+        }
       </div>
 
       <z-card>
@@ -84,26 +87,28 @@ const POINT_TYPE_LABELS: Record<PointType, string> = {
                     </z-badge>
                   </td>
                   <td z-table-cell class="text-right">
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="abrirEditar(ponto)"
-                      [attr.aria-label]="'Editar ' + ponto.name"
-                    >
-                      <ng-icon name="lucidePencil" aria-hidden="true" />
-                    </button>
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="confirmarExclusao(ponto)"
-                      [attr.aria-label]="'Excluir ' + ponto.name"
-                    >
-                      <ng-icon name="lucideTrash2" aria-hidden="true" />
-                    </button>
+                    @if (canManage()) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="abrirEditar(ponto)"
+                        [attr.aria-label]="'Editar ' + ponto.name"
+                      >
+                        <ng-icon name="lucidePencil" aria-hidden="true" />
+                      </button>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="confirmarExclusao(ponto)"
+                        [attr.aria-label]="'Excluir ' + ponto.name"
+                      >
+                        <ng-icon name="lucideTrash2" aria-hidden="true" />
+                      </button>
+                    }
                   </td>
                 </tr>
               } @empty {
@@ -124,6 +129,7 @@ export class Points implements OnInit {
   private readonly pointService = inject(PointService);
   private readonly adminUnityService = inject(AdminUnityService);
   private readonly companyService = inject(CompanyService);
+  private readonly session = inject(SessionService);
   private readonly dialog = inject(ZardDialogService);
   private readonly alertDialog = inject(ZardAlertDialogService);
   private readonly vcr = inject(ViewContainerRef);
@@ -133,6 +139,10 @@ export class Points implements OnInit {
   protected readonly adminUnities = signal<AdminUnity[]>([]);
   protected readonly companies = signal<Company[]>([]);
   protected readonly loading = signal(false);
+  protected readonly canManage = computed(() => {
+    const role = this.session.usuario()?.role;
+    return role === 'admin' || role === 'supervisor';
+  });
 
   ngOnInit(): void {
     void this.carregar();

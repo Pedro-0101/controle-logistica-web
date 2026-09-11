@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
 import { firstValueFrom, take } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { NgIcon } from '@ng-icons/core';
@@ -11,6 +11,7 @@ import { ZardCardComponent } from '@/shared/components/card';
 import { ZardDialogService } from '@/shared/components/dialog';
 import { ZardTableImports } from '@/shared/components/table';
 import { LoggerService } from '@/shared/services/logger.service';
+import { SessionService } from '@/shared/core/auth/session.service';
 import { UserService } from '@/shared/services/user.service';
 import { TitleCasePipe } from '@/shared/core/pipes';
 import type { ManagedUser, UserRole } from '@/shared/models';
@@ -46,10 +47,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
           <p class="text-sm text-muted-foreground">Cadastre, edite e remova os usuários do sistema.</p>
         </div>
 
-        <button z-button zSize="sm" type="button" (click)="abrirCriar()">
-          <ng-icon name="lucidePlus" aria-hidden="true" />
-          Novo usuário
-        </button>
+        @if (canManage()) {
+          <button z-button zSize="sm" type="button" (click)="abrirCriar()">
+            <ng-icon name="lucidePlus" aria-hidden="true" />
+            Novo usuário
+          </button>
+        }
       </div>
 
       <z-card>
@@ -76,26 +79,28 @@ const ROLE_LABELS: Record<UserRole, string> = {
                     <z-badge [zType]="roleBadgeType(usuario.role)" zShape="default">{{ roleLabel(usuario.role) }}</z-badge>
                   </td>
                   <td z-table-cell class="text-right">
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="abrirEditar(usuario)"
-                      [attr.aria-label]="'Editar ' + usuario.name"
-                    >
-                      <ng-icon name="lucidePencil" aria-hidden="true" />
-                    </button>
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="confirmarExclusao(usuario)"
-                      [attr.aria-label]="'Excluir ' + usuario.name"
-                    >
-                      <ng-icon name="lucideTrash2" aria-hidden="true" />
-                    </button>
+                    @if (canManage()) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="abrirEditar(usuario)"
+                        [attr.aria-label]="'Editar ' + usuario.name"
+                      >
+                        <ng-icon name="lucidePencil" aria-hidden="true" />
+                      </button>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="confirmarExclusao(usuario)"
+                        [attr.aria-label]="'Excluir ' + usuario.name"
+                      >
+                        <ng-icon name="lucideTrash2" aria-hidden="true" />
+                      </button>
+                    }
                   </td>
                 </tr>
               } @empty {
@@ -114,6 +119,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 })
 export class Users implements OnInit {
   private readonly userService = inject(UserService);
+  private readonly session = inject(SessionService);
   private readonly dialog = inject(ZardDialogService);
   private readonly alertDialog = inject(ZardAlertDialogService);
   private readonly vcr = inject(ViewContainerRef);
@@ -121,6 +127,10 @@ export class Users implements OnInit {
 
   protected readonly usuarios = signal<ManagedUser[]>([]);
   protected readonly loading = signal(false);
+  protected readonly canManage = computed(() => {
+    const role = this.session.usuario()?.role;
+    return role === 'admin' || role === 'supervisor';
+  });
 
   ngOnInit(): void {
     void this.carregar();
@@ -174,7 +184,7 @@ export class Users implements OnInit {
       zTitle: usuario ? 'Editar usuário' : 'Novo usuário',
       zDescription: usuario ? 'Atualize os dados do usuário.' : 'Preencha os dados para criar um novo usuário.',
       zHideFooter: true,
-      zWidth: '28rem',
+      zWidth: '32rem',
       zMaskClosable: false,
     });
 

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
 import { firstValueFrom, take } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { NgIcon } from '@ng-icons/core';
@@ -11,6 +11,7 @@ import { ZardCardComponent } from '@/shared/components/card';
 import { ZardDialogService } from '@/shared/components/dialog';
 import { ZardTableImports } from '@/shared/components/table';
 import { VehicleService } from '@/shared/services/vehicle.service';
+import { SessionService } from '@/shared/core/auth/session.service';
 import { LoggerService } from '@/shared/services/logger.service';
 import type { Vehicle, VehicleType } from '@/shared/models';
 
@@ -44,10 +45,12 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
           <p class="text-sm text-muted-foreground">Cadastre, edite e remova os veículos do sistema.</p>
         </div>
 
-        <button z-button zSize="sm" type="button" (click)="abrirCriar()">
-          <ng-icon name="lucidePlus" aria-hidden="true" />
-          Novo veículo
-        </button>
+        @if (canManage()) {
+          <button z-button zSize="sm" type="button" (click)="abrirCriar()">
+            <ng-icon name="lucidePlus" aria-hidden="true" />
+            Novo veículo
+          </button>
+        }
       </div>
 
       <z-card>
@@ -78,26 +81,28 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
                     </z-badge>
                   </td>
                   <td z-table-cell class="text-right">
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="abrirEditar(veiculo)"
-                      [attr.aria-label]="'Editar veículo ' + veiculo.plate"
-                    >
-                      <ng-icon name="lucidePencil" aria-hidden="true" />
-                    </button>
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="confirmarExclusao(veiculo)"
-                      [attr.aria-label]="'Excluir veículo ' + veiculo.plate"
-                    >
-                      <ng-icon name="lucideTrash2" aria-hidden="true" />
-                    </button>
+                    @if (canManage()) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="abrirEditar(veiculo)"
+                        [attr.aria-label]="'Editar veículo ' + veiculo.plate"
+                      >
+                        <ng-icon name="lucidePencil" aria-hidden="true" />
+                      </button>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="confirmarExclusao(veiculo)"
+                        [attr.aria-label]="'Excluir veículo ' + veiculo.plate"
+                      >
+                        <ng-icon name="lucideTrash2" aria-hidden="true" />
+                      </button>
+                    }
                   </td>
                 </tr>
               } @empty {
@@ -116,6 +121,7 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
 })
 export class Vehicles implements OnInit {
   private readonly vehicleService = inject(VehicleService);
+  private readonly session = inject(SessionService);
   private readonly dialog = inject(ZardDialogService);
   private readonly alertDialog = inject(ZardAlertDialogService);
   private readonly vcr = inject(ViewContainerRef);
@@ -123,6 +129,10 @@ export class Vehicles implements OnInit {
 
   protected readonly veiculos = signal<Vehicle[]>([]);
   protected readonly loading = signal(false);
+  protected readonly canManage = computed(() => {
+    const role = this.session.usuario()?.role;
+    return role === 'admin' || role === 'supervisor';
+  });
 
   protected readonly vehicleTypeLabel = (type: VehicleType): string => VEHICLE_TYPE_LABEL[type] ?? type;
 

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
 import { firstValueFrom, take } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { NgIcon } from '@ng-icons/core';
@@ -12,6 +12,7 @@ import { ZardDialogService } from '@/shared/components/dialog';
 import { ZardTableImports } from '@/shared/components/table';
 import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { CompanyService } from '@/shared/services/company.service';
+import { SessionService } from '@/shared/core/auth/session.service';
 import { LoggerService } from '@/shared/services/logger.service';
 import type { AdminUnity, Company } from '@/shared/models';
 
@@ -39,10 +40,12 @@ type StatusBadgeType = 'default' | 'outline';
           <p class="text-sm text-muted-foreground">Cadastre, edite e remova as unidades administrativas.</p>
         </div>
 
-        <button z-button zSize="sm" type="button" (click)="abrirCriar()">
-          <ng-icon name="lucidePlus" aria-hidden="true" />
-          Nova unidade
-        </button>
+        @if (canManage()) {
+          <button z-button zSize="sm" type="button" (click)="abrirCriar()">
+            <ng-icon name="lucidePlus" aria-hidden="true" />
+            Nova unidade
+          </button>
+        }
       </div>
 
       <z-card>
@@ -75,26 +78,28 @@ type StatusBadgeType = 'default' | 'outline';
                     </z-badge>
                   </td>
                   <td z-table-cell class="text-right">
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="abrirEditar(unidade)"
-                      [attr.aria-label]="'Editar ' + unidade.name"
-                    >
-                      <ng-icon name="lucidePencil" aria-hidden="true" />
-                    </button>
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="confirmarExclusao(unidade)"
-                      [attr.aria-label]="'Excluir ' + unidade.name"
-                    >
-                      <ng-icon name="lucideTrash2" aria-hidden="true" />
-                    </button>
+                    @if (canManage()) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="abrirEditar(unidade)"
+                        [attr.aria-label]="'Editar ' + unidade.name"
+                      >
+                        <ng-icon name="lucidePencil" aria-hidden="true" />
+                      </button>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        (click)="confirmarExclusao(unidade)"
+                        [attr.aria-label]="'Excluir ' + unidade.name"
+                      >
+                        <ng-icon name="lucideTrash2" aria-hidden="true" />
+                      </button>
+                    }
                   </td>
                 </tr>
               } @empty {
@@ -114,6 +119,7 @@ type StatusBadgeType = 'default' | 'outline';
 export class AdminUnities implements OnInit {
   private readonly adminUnityService = inject(AdminUnityService);
   private readonly companyService = inject(CompanyService);
+  private readonly session = inject(SessionService);
   private readonly dialog = inject(ZardDialogService);
   private readonly alertDialog = inject(ZardAlertDialogService);
   private readonly vcr = inject(ViewContainerRef);
@@ -122,6 +128,10 @@ export class AdminUnities implements OnInit {
   protected readonly unidades = signal<AdminUnity[]>([]);
   protected readonly companies = signal<Company[]>([]);
   protected readonly loading = signal(false);
+  protected readonly canManage = computed(() => {
+    const role = this.session.usuario()?.role;
+    return role === 'admin' || role === 'supervisor';
+  });
 
   ngOnInit(): void {
     void this.carregar();
