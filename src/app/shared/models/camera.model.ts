@@ -1,6 +1,13 @@
 /** Tipo de autenticação da câmera. */
 export type CameraAuthType = 'digest' | 'basic';
 
+/** URLs de streaming via MediaMTX, conforme retornado por `/camera/{id}/stream`. */
+export interface StreamUrls {
+  hlsUrl: string;
+  webrtcUrl: string;
+  rtspUrl: string;
+}
+
 /** Câmera IP, conforme retornado por `/camera`. */
 export interface Camera {
   id: string;
@@ -18,6 +25,7 @@ export interface Camera {
   updatedById: string | null;
   createdAt: string;
   updatedAt: string;
+  streamUrls?: StreamUrls;
 }
 
 /** Corpo do POST /camera. */

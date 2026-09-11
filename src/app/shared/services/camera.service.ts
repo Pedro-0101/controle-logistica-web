@@ -1,7 +1,7 @@
 import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import type { Camera, CreateCameraRequest, UpdateCameraRequest } from '@/shared/models';
+import type { Camera, CreateCameraRequest, StreamUrls, UpdateCameraRequest } from '@/shared/models';
 import { ApiClientService } from './api-client.service';
 
 /**
@@ -14,6 +14,11 @@ export class CameraService {
   /** Lista as câmeras visíveis para o usuário autenticado. */
   list(): Observable<Camera[]> {
     return this.api.get<Camera[]>('/camera');
+  }
+
+  /** Obtém as URLs de streaming (HLS/WebRTC/RTSP) de uma câmera específica. */
+  getStreamUrls(id: string): Observable<StreamUrls> {
+    return this.api.get<StreamUrls>(`/camera/${id}/stream`);
   }
 
   /** Cria uma nova câmera. */
