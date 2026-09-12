@@ -31,7 +31,7 @@ const SLOT_COUNT_MAP: Record<LayoutType, number> = { '1': 1, '2': 2, '4': 4 };
 const GRID_CLASSES: Record<LayoutType, string> = {
   '1': 'grid-cols-1',
   '2': 'grid-cols-1 lg:grid-cols-2',
-  '4': 'grid-cols-1 sm:grid-cols-2',
+  '4': 'grid-cols-1 sm:grid-cols-2 grid-rows-[1fr_1fr]',
 };
 
 @Component({
@@ -48,8 +48,8 @@ const GRID_CLASSES: Record<LayoutType, string> = {
   template: `
     <app-site-header />
 
-    <main class="mx-auto flex max-w-[1800px] flex-col gap-6 px-4 py-8">
-      <div class="flex flex-col gap-1">
+    <main class="mx-auto flex h-[calc(100dvh-3.5rem)] max-w-[1800px] flex-col overflow-hidden px-4">
+      <div class="flex shrink-0 flex-col gap-1 pt-4 pb-2">
         <h1 class="text-lg font-semibold">Monitoramento de câmeras</h1>
         <p class="text-sm text-muted-foreground">
           Visualização em tempo real dos pontos de entrada e saída.
@@ -74,8 +74,8 @@ const GRID_CLASSES: Record<LayoutType, string> = {
           description="Cadastre câmeras para visualizar o monitoramento em tempo real."
         />
       } @else {
-        <section class="flex flex-col gap-4">
-          <div class="flex flex-wrap items-center gap-4">
+        <section class="flex min-h-0 flex-1 flex-col gap-3 pb-2">
+          <div class="flex shrink-0 flex-wrap items-center gap-4">
             <div class="flex items-center gap-1" role="radiogroup" aria-label="Layout de câmeras">
               <span class="mr-1 text-xs font-medium text-muted-foreground">Layout:</span>
               @for (opt of layoutOptions; track opt.value) {
@@ -139,7 +139,7 @@ const GRID_CLASSES: Record<LayoutType, string> = {
 
           @if (hasAnyCamera()) {
             <section
-              class="grid gap-6"
+              class="grid min-h-0 flex-1 gap-4"
               [class]="gridClasses()"
               role="tabpanel"
               aria-label="Streams das câmeras"
@@ -151,10 +151,11 @@ const GRID_CLASSES: Record<LayoutType, string> = {
                       [src]="camera.streamUrls.hlsUrl"
                       [title]="camera.name"
                       [anpr]="true"
+                      [class.fill-height]="layout() === '2'"
                     />
                   } @else {
                     <div
-                      class="flex aspect-video items-center justify-center rounded-md border border-border bg-muted/50"
+                      class="flex min-h-0 items-center justify-center rounded-md border border-border bg-muted/50"
                       [attr.aria-label]="'Câmera ' + camera.name + ' sem stream disponível'"
                     >
                       <p class="text-sm text-muted-foreground">Stream não disponível</p>
@@ -162,7 +163,7 @@ const GRID_CLASSES: Record<LayoutType, string> = {
                   }
                 } @else {
                   <div
-                    class="flex aspect-video items-center justify-center rounded-md border border-dashed border-border bg-muted/30"
+                    class="flex min-h-0 items-center justify-center rounded-md border border-dashed border-border bg-muted/30"
                     [attr.aria-label]="'Slot ' + (slot.index + 1) + ' vazio'"
                   >
                     <div class="flex flex-col items-center gap-2">
