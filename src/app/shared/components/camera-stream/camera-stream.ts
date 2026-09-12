@@ -80,6 +80,7 @@ export class CameraStream implements OnDestroy {
   private anprInFlight = false;
   private destroyed = false;
   private resizeObserver?: ResizeObserver;
+  private overlayRafId = 0;
 
   constructor() {
     afterNextRender(() => this.setup());
@@ -90,6 +91,10 @@ export class CameraStream implements OnDestroy {
     if (this.anprTimer) {
       clearTimeout(this.anprTimer);
       this.anprTimer = undefined;
+    }
+    if (this.overlayRafId) {
+      cancelAnimationFrame(this.overlayRafId);
+      this.overlayRafId = 0;
     }
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
@@ -146,8 +151,8 @@ export class CameraStream implements OnDestroy {
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
-        backBufferLength: 30,
-        liveSyncDurationCount: 3,
+        liveSyncDuration: 3,
+        maxBufferLength: 30,
       });
       this.hls = hls;
 
@@ -216,7 +221,7 @@ export class CameraStream implements OnDestroy {
     if (!container) {
       return;
     }
-    this.resizeObserver = new ResizeObserver(() => this.drawOverlay());
+    this.resizeObserver = new ResizeObserver(() => this.scheduleDrawOverlay());
     this.resizeObserver.observe(container);
   }
 
@@ -323,7 +328,7 @@ export class CameraStream implements OnDestroy {
         confianca: result.confianca,
         box,
       });
-      this.drawOverlay();
+      this.scheduleDrawOverlay();
       return;
     }
     this.anprError.set(null);
@@ -375,8 +380,17 @@ export class CameraStream implements OnDestroy {
     }
     if (Date.now() - current.at >= PLATE_HOLD_MS) {
       this.plate.set(null);
-      this.drawOverlay();
+      this.scheduleDrawOverlay();
     }
+  }
+
+  /** Agenda um redraw do overlay, deduplicando chamadas dentro do mesmo frame. */
+  private scheduleDrawOverlay(): void {
+    if (this.destroyed || this.overlayRafId) return;
+    this.overlayRafId = requestAnimationFrame(() => {
+      this.overlayRafId = 0;
+      this.drawOverlay();
+    });
   }
 
   private drawOverlay(): void {

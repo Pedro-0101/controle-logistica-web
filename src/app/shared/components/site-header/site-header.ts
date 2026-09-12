@@ -114,6 +114,16 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
                 <div z-navigation-menu-content class="w-56">
                   <a
                     z-navigation-menu-link
+                    routerLink="/cameras/monitoramento"
+                    routerLinkActive
+                    #linkMonitoramento="routerLinkActive"
+                    [zActive]="linkMonitoramento.isActive"
+                  >
+                    <ng-icon name="lucideMonitorPlay" aria-hidden="true" />
+                    Monitoramento
+                  </a>
+                  <a
+                    z-navigation-menu-link
                     routerLink="/cameras"
                     routerLinkActive
                     #linkCameras="routerLinkActive"

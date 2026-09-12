@@ -51,5 +51,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/cameras/cameras').then((m) => m.Cameras),
     title: 'Gerenciar câmeras',
   },
+  {
+    path: 'cameras/monitoramento',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/cameras/cameras-monitoring').then((m) => m.CamerasMonitoring),
+    title: 'Monitoramento de câmeras',
+  },
   { path: '**', redirectTo: 'home' },
 ];
