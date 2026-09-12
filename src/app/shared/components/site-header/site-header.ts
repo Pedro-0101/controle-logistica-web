@@ -1,5 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
 
 import { SessionService } from '@/shared/core/auth';
@@ -9,6 +9,9 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
 
 @Component({
   selector: 'app-site-header',
+  host: {
+    '(document:click)': 'menuAberto.set(false)',
+  },
   imports: [RouterLink, RouterLinkActive, NgIcon, ZardButtonComponent, ZardNavigationMenuImports],
   template: `
     <header class="flex h-14 items-center gap-6 border-b border-border bg-background px-4 sm:px-6">
@@ -173,6 +176,43 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
         >
           <ng-icon [name]="temaSvc.isDark() ? 'lucideSun' : 'lucideMoon'" aria-hidden="true" class="size-4" />
         </button>
+
+        <div class="relative">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            (click)="menuAberto.update(v => !v); $event.stopPropagation()"
+            [attr.aria-expanded]="menuAberto()"
+            aria-haspopup="true"
+            aria-label="Menu do usuário"
+          >
+            <ng-icon name="lucideUser" aria-hidden="true" class="size-4" />
+            <span class="hidden sm:inline">{{ userName() }}</span>
+            <ng-icon name="lucideChevronDown" aria-hidden="true" class="size-3" />
+          </button>
+
+          @if (menuAberto()) {
+            <div
+              class="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+              role="menu"
+            >
+              <div class="px-2 py-1.5">
+                <div class="text-sm font-medium text-foreground">{{ userName() }}</div>
+                <div class="text-xs text-muted-foreground">{{ userEmail() }}</div>
+              </div>
+              <div class="my-1 border-t border-border"></div>
+              <button
+                type="button"
+                class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive"
+                role="menuitem"
+                (click)="fazerLogout()"
+              >
+                <ng-icon name="lucideLogOut" aria-hidden="true" class="size-4" />
+                Sair da conta
+              </button>
+            </div>
+          }
+        </div>
       </div>
     </header>
   `,
@@ -180,10 +220,18 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
 export class SiteHeader {
   protected readonly temaSvc = inject(ThemeService);
   private readonly session = inject(SessionService);
+  private readonly router = inject(Router);
 
-  /** `true` quando o usuário logado é root (sem empresa vinculada). */
+  protected readonly menuAberto = signal(false);
+
   protected readonly isRoot = computed(() => this.session.usuario()?.companyId === null);
-
-  /** Nome exibido na marca da navbar (razão social da empresa, quando houver). */
   protected readonly brandName = computed(() => this.session.usuario()?.company?.companyName ?? 'Controle Logística');
+  protected readonly userName = computed(() => this.session.usuario()?.name ?? this.session.usuario()?.email ?? 'Usuário');
+  protected readonly userEmail = computed(() => this.session.usuario()?.email ?? '');
+
+  protected fazerLogout(): void {
+    this.menuAberto.set(false);
+    this.session.logout();
+    void this.router.navigate(['/login']);
+  }
 }
