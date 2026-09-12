@@ -1,3 +1,5 @@
+import type { CompanyConfig } from './company-config.model';
+
 /** Empresa, conforme retornado por `/company`. */
 export interface Company {
   id: string;
@@ -59,6 +61,7 @@ export interface CompanyAdminResponse {
 export interface CreateCompanyResponse {
   company: Company;
   admin: CompanyAdminResponse;
+  config: CompanyConfig;
 }
 
 /** Resumo da empresa retornado no login e em `/auth/me`. */

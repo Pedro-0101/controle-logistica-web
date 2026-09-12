@@ -11,10 +11,12 @@ import { ZardCardComponent } from '@/shared/components/card';
 import { ZardDialogService } from '@/shared/components/dialog';
 import { ZardTableImports } from '@/shared/components/table';
 import { CompanyService } from '@/shared/services/company.service';
+import { CompanyConfigService } from '@/shared/services/company-config.service';
 import { LoggerService } from '@/shared/services/logger.service';
-import type { Company } from '@/shared/models';
+import type { Company, CompanyConfig } from '@/shared/models';
 
 import { CompanyFormDialog } from './company-form-dialog';
+import { CompanyConfigDialog } from './company-config-dialog';
 
 type StatusBadgeType = 'default' | 'outline';
 
@@ -79,6 +81,16 @@ type StatusBadgeType = 'default' | 'outline';
                       zType="ghost"
                       zSize="icon"
                       type="button"
+                      (click)="abrirConfig(empresa)"
+                      [attr.aria-label]="'Configurações de ' + empresa.name"
+                    >
+                      <ng-icon name="lucideSettings" aria-hidden="true" />
+                    </button>
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      type="button"
                       (click)="abrirEditar(empresa)"
                       [attr.aria-label]="'Editar ' + empresa.name"
                     >
@@ -112,6 +124,7 @@ type StatusBadgeType = 'default' | 'outline';
 })
 export class Companies implements OnInit {
   private readonly companyService = inject(CompanyService);
+  private readonly configService = inject(CompanyConfigService);
   private readonly dialog = inject(ZardDialogService);
   private readonly alertDialog = inject(ZardAlertDialogService);
   private readonly vcr = inject(ViewContainerRef);
@@ -134,6 +147,31 @@ export class Companies implements OnInit {
 
   protected abrirEditar(empresa: Company): void {
     this.abrirDialog(empresa);
+  }
+
+  protected async abrirConfig(empresa: Company): Promise<void> {
+    try {
+      const config = await firstValueFrom(this.configService.get(empresa.id));
+      const ref = this.dialog.create<CompanyConfigDialog, CompanyConfig>({
+        zContent: CompanyConfigDialog,
+        zData: { companyId: empresa.id, config },
+        zViewContainerRef: this.vcr,
+        zTitle: `Configurações — ${empresa.name}`,
+        zDescription: 'Ajuste as configurações operacionais da empresa.',
+        zHideFooter: true,
+        zWidth: '32rem',
+        zMaskClosable: false,
+      });
+
+      ref.afterClosed.pipe(take(1)).subscribe((result) => {
+        if (result) {
+          void this.carregar();
+        }
+      });
+    } catch (error) {
+      this.logger.error('Falha ao carregar configuração', error);
+      toast.error('Falha ao carregar configurações da empresa.');
+    }
   }
 
   protected confirmarExclusao(empresa: Company): void {

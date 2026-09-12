@@ -180,7 +180,7 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
         <div class="relative">
           <button
             type="button"
-            class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             (click)="menuAberto.update(v => !v); $event.stopPropagation()"
             [attr.aria-expanded]="menuAberto()"
             aria-haspopup="true"

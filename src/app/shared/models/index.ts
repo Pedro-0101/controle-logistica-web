@@ -5,6 +5,7 @@ export * from './auth.model';
 export * from './base.model';
 export * from './camera.model';
 export * from './company.model';
+export * from './company-config.model';
 export * from './point.model';
 export * from './user.model';
 export * from './vehicle.model';
