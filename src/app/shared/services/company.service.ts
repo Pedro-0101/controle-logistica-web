@@ -16,6 +16,11 @@ export class CompanyService {
     return this.api.get<Company[]>('/company');
   }
 
+  /** Busca uma empresa pelo ID. */
+  getById(id: string): Observable<Company> {
+    return this.api.get<Company>(`/company/${id}`);
+  }
+
   /** Cria uma nova empresa junto com seu usuário administrador. */
   create(payload: CreateCompanyRequest): Observable<CreateCompanyResponse> {
     return this.api.post<CreateCompanyResponse>('/company', payload);

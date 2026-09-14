@@ -139,6 +139,12 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
               </ng-template>
             </div>
 
+            @if (isAdmin()) {
+              <a z-button zType="ghost" zSize="sm" routerLink="/minha-empresa" routerLinkActive="bg-accent">
+                Minha Empresa
+              </a>
+            }
+
             @if (isRoot()) {
               <div z-navigation-menu-item>
                 <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="empresasMenu">
@@ -225,6 +231,7 @@ export class SiteHeader {
   protected readonly menuAberto = signal(false);
 
   protected readonly isRoot = computed(() => this.session.usuario()?.companyId === null);
+  protected readonly isAdmin = computed(() => this.session.usuario()?.role === 'admin');
   protected readonly brandName = computed(() => this.session.usuario()?.company?.companyName ?? 'Controle Logística');
   protected readonly userName = computed(() => this.session.usuario()?.name ?? this.session.usuario()?.email ?? 'Usuário');
   protected readonly userEmail = computed(() => this.session.usuario()?.email ?? '');
