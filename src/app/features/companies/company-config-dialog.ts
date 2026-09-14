@@ -42,7 +42,7 @@ interface ConfigFormModel {
   requirePurpose: boolean;
 }
 
-interface ConfigDialogData {
+export interface ConfigDialogData {
   companyId: string;
   config: CompanyConfig;
 }
@@ -514,7 +514,7 @@ export class CompanyConfigDialog {
     });
   }
 
-  protected firstError(field: FieldState<string, string>): string {
+  protected firstError<V>(field: FieldState<V, string>): string {
     const errors = field.errors();
     return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
   }

@@ -373,7 +373,7 @@ export class CompanyFormDialog {
     });
   }
 
-  protected firstError(field: FieldState<string, string>): string {
+  protected firstError<V>(field: FieldState<V, string>): string {
     const errors = field.errors();
     return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
   }

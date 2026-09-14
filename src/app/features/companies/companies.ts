@@ -13,10 +13,10 @@ import { ZardTableImports } from '@/shared/components/table';
 import { CompanyService } from '@/shared/services/company.service';
 import { CompanyConfigService } from '@/shared/services/company-config.service';
 import { LoggerService } from '@/shared/services/logger.service';
-import type { Company, CompanyConfig } from '@/shared/models';
+import type { Company } from '@/shared/models';
 
 import { CompanyFormDialog } from './company-form-dialog';
-import { CompanyConfigDialog } from './company-config-dialog';
+import { CompanyConfigDialog, type ConfigDialogData } from './company-config-dialog';
 
 type StatusBadgeType = 'default' | 'outline';
 
@@ -152,7 +152,7 @@ export class Companies implements OnInit {
   protected async abrirConfig(empresa: Company): Promise<void> {
     try {
       const config = await firstValueFrom(this.configService.get(empresa.id));
-      const ref = this.dialog.create<CompanyConfigDialog, CompanyConfig>({
+      const ref = this.dialog.create<CompanyConfigDialog, ConfigDialogData>({
         zContent: CompanyConfigDialog,
         zData: { companyId: empresa.id, config },
         zViewContainerRef: this.vcr,
