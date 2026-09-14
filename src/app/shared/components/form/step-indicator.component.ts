@@ -51,7 +51,7 @@ import { ChangeDetectionStrategy, Component, input, ViewEncapsulation } from '@a
 })
 export class ZardStepIndicatorComponent {
   readonly stepNumber = input.required<number>();
-  readonly size = input(32);
+  readonly size = input(36);
   readonly active = input(false);
   readonly complete = input(false);
 }

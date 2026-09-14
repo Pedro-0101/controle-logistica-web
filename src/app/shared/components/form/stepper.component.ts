@@ -12,12 +12,12 @@ import { ZardStepIndicatorComponent } from './step-indicator.component';
   selector: 'z-form-stepper',
   imports: [ZardStepIndicatorComponent],
   template: `
-    <nav class="flex items-center justify-center gap-0 mb-8">
+    <nav class="flex items-center justify-center gap-0 mb-6 overflow-hidden">
       @for (step of steps(); track step; let i = $index) {
-        <div class="flex items-center">
+        <div class="flex items-center min-w-0">
           <button
             type="button"
-            class="flex items-center gap-2 group cursor-default"
+            class="flex items-center gap-1.5 group cursor-default min-w-0"
             [class.cursor-pointer]="i < currentStep() && !zLinear()"
             [attr.aria-current]="i === currentStep() ? 'step' : undefined"
             [attr.aria-disabled]="i > currentStep() || null"
@@ -29,7 +29,7 @@ import { ZardStepIndicatorComponent } from './step-indicator.component';
               [complete]="i < currentStep()"
             />
             <span
-              class="text-sm hidden sm:inline"
+              class="text-sm truncate min-w-0"
               [class.text-foreground]="i <= currentStep()"
               [class.font-medium]="i === currentStep()"
               [class.text-muted-foreground]="i > currentStep()"
@@ -37,7 +37,7 @@ import { ZardStepIndicatorComponent } from './step-indicator.component';
           </button>
           @if (i < steps().length - 1) {
             <div
-              class="w-8 sm:w-12 h-0.5 mx-1 sm:mx-2 transition-colors"
+              class="w-4 sm:w-8 h-0.5 mx-0.5 sm:mx-1.5 shrink-0 transition-colors"
               [class.bg-primary]="i < currentStep()"
               [class.bg-muted]="i >= currentStep()"
             ></div>

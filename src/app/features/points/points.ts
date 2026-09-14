@@ -197,8 +197,9 @@ export class Points implements OnInit {
       zTitle: ponto ? 'Editar ponto' : 'Novo ponto',
       zDescription: ponto ? 'Atualize os dados do ponto.' : 'Preencha os dados para criar um novo ponto.',
       zHideFooter: true,
-      zWidth: '28rem',
+      zWidth: '40rem',
       zMaskClosable: false,
+      zClosable: false,
     });
 
     ref.afterClosed.pipe(take(1)).subscribe((result) => {
