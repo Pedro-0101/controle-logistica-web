@@ -15,6 +15,7 @@ import type {
 } from '@/shared/models';
 import { CompanyService } from '@/shared/services/company.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { firstError } from '@/shared/utils/form-utils';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
@@ -80,7 +81,7 @@ type WizardStep = 'company' | 'admin';
             />
           </z-form-control>
           @if (companyForm.name().invalid() && companyForm.name().touched()) {
-            <z-form-message id="company-name-error" [zError]="true">{{ firstError(companyForm.name()) }}</z-form-message>
+            <z-form-message id="company-name-error" [zError]="true">{{ getError(companyForm.name()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -99,7 +100,7 @@ type WizardStep = 'company' | 'admin';
             />
           </z-form-control>
           @if (companyForm.companyName().invalid() && companyForm.companyName().touched()) {
-            <z-form-message id="company-company-name-error" [zError]="true">{{ firstError(companyForm.companyName()) }}</z-form-message>
+            <z-form-message id="company-company-name-error" [zError]="true">{{ getError(companyForm.companyName()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -119,7 +120,7 @@ type WizardStep = 'company' | 'admin';
               />
             </z-form-control>
             @if (companyForm.cnpj().invalid() && companyForm.cnpj().touched()) {
-              <z-form-message id="company-cnpj-error" [zError]="true">{{ firstError(companyForm.cnpj()) }}</z-form-message>
+              <z-form-message id="company-cnpj-error" [zError]="true">{{ getError(companyForm.cnpj()) }}</z-form-message>
             }
           </z-form-field>
 
@@ -138,7 +139,7 @@ type WizardStep = 'company' | 'admin';
               />
             </z-form-control>
             @if (companyForm.stateRegistration().invalid() && companyForm.stateRegistration().touched()) {
-              <z-form-message id="company-state-registration-error" [zError]="true">{{ firstError(companyForm.stateRegistration()) }}</z-form-message>
+              <z-form-message id="company-state-registration-error" [zError]="true">{{ getError(companyForm.stateRegistration()) }}</z-form-message>
             }
           </z-form-field>
         </div>
@@ -158,7 +159,7 @@ type WizardStep = 'company' | 'admin';
             />
           </z-form-control>
           @if (companyForm.address().invalid() && companyForm.address().touched()) {
-            <z-form-message id="company-address-error" [zError]="true">{{ firstError(companyForm.address()) }}</z-form-message>
+            <z-form-message id="company-address-error" [zError]="true">{{ getError(companyForm.address()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -178,7 +179,7 @@ type WizardStep = 'company' | 'admin';
             />
           </z-form-control>
           @if (companyForm.email().invalid() && companyForm.email().touched()) {
-            <z-form-message id="company-email-error" [zError]="true">{{ firstError(companyForm.email()) }}</z-form-message>
+            <z-form-message id="company-email-error" [zError]="true">{{ getError(companyForm.email()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -207,7 +208,7 @@ type WizardStep = 'company' | 'admin';
             />
           </z-form-control>
           @if (companyForm.adminName().invalid() && companyForm.adminName().touched()) {
-            <z-form-message id="company-admin-name-error" [zError]="true">{{ firstError(companyForm.adminName()) }}</z-form-message>
+            <z-form-message id="company-admin-name-error" [zError]="true">{{ getError(companyForm.adminName()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -227,7 +228,7 @@ type WizardStep = 'company' | 'admin';
             />
           </z-form-control>
           @if (companyForm.adminEmail().invalid() && companyForm.adminEmail().touched()) {
-            <z-form-message id="company-admin-email-error" [zError]="true">{{ firstError(companyForm.adminEmail()) }}</z-form-message>
+            <z-form-message id="company-admin-email-error" [zError]="true">{{ getError(companyForm.adminEmail()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -247,7 +248,7 @@ type WizardStep = 'company' | 'admin';
             />
           </z-form-control>
           @if (companyForm.adminPassword().invalid() && companyForm.adminPassword().touched()) {
-            <z-form-message id="company-admin-password-error" [zError]="true">{{ firstError(companyForm.adminPassword()) }}</z-form-message>
+            <z-form-message id="company-admin-password-error" [zError]="true">{{ getError(companyForm.adminPassword()) }}</z-form-message>
           }
         </z-form-field>
       }
@@ -373,9 +374,8 @@ export class CompanyFormDialog {
     });
   }
 
-  protected firstError<V>(field: FieldState<V, string>): string {
-    const errors = field.errors();
-    return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
+  protected getError<V>(field: FieldState<V, string>): string {
+    return firstError(field);
   }
 
   protected cancelar(): void {

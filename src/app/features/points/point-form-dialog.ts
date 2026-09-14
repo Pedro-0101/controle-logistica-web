@@ -17,6 +17,8 @@ import type {
 import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { PointService } from '@/shared/services/point.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { firstError } from '@/shared/utils/form-utils';
+import { createStepNavigation } from '@/shared/utils/step-navigation';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
@@ -71,13 +73,13 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
   template: `
     <z-form-stepper
       [steps]="stepLabels"
-      [currentStep]="currentStep()"
+      [currentStep]="nav.currentStep()"
       [zLinear]="true"
-      (stepChange)="onStepChange($event)"
+      (stepChange)="nav.goToStep($event)"
     />
 
     <form [formRoot]="pointForm" class="flex flex-col gap-5" novalidate>
-      @if (currentStep() === 0) {
+      @if (nav.currentStep() === 0) {
         <div class="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <p class="text-sm text-muted-foreground">
             Nome e código para identificação do ponto.
@@ -100,7 +102,7 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                 />
               </z-form-control>
               @if (pointForm.name().invalid() && pointForm.name().touched()) {
-                <z-form-message [zError]="true">{{ firstError(pointForm.name()) }}</z-form-message>
+                <z-form-message [zError]="true">{{ getError(pointForm.name()) }}</z-form-message>
               }
             </z-form-field>
 
@@ -119,14 +121,14 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                 />
               </z-form-control>
               @if (pointForm.code().invalid() && pointForm.code().touched()) {
-                <z-form-message [zError]="true">{{ firstError(pointForm.code()) }}</z-form-message>
+                <z-form-message [zError]="true">{{ getError(pointForm.code()) }}</z-form-message>
               }
             </z-form-field>
           </div>
         </div>
       }
 
-      @if (currentStep() === 1) {
+      @if (nav.currentStep() === 1) {
         <div class="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <p class="text-sm text-muted-foreground">
             Classificação e vinculação administrativa do ponto.
@@ -155,7 +157,7 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                 </select>
               </z-form-control>
               @if (pointForm.adminUnityId().invalid() && pointForm.adminUnityId().touched()) {
-                <z-form-message [zError]="true">{{ firstError(pointForm.adminUnityId()) }}</z-form-message>
+                <z-form-message [zError]="true">{{ getError(pointForm.adminUnityId()) }}</z-form-message>
               }
             </z-form-field>
           </div>
@@ -174,7 +176,7 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
         </div>
       }
 
-      @if (currentStep() === 2) {
+      @if (nav.currentStep() === 2) {
         <div class="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div class="flex items-center gap-2">
             <h3 class="text-sm font-medium">Registro Automático (ANPR)</h3>
@@ -356,8 +358,8 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
       }
 
       <div class="flex justify-between gap-2 pt-2 border-t">
-        @if (currentStep() > 0) {
-          <button z-button zType="outline" zSize="default" type="button" (click)="previousStep()">
+        @if (nav.currentStep() > 0) {
+          <button z-button zType="outline" zSize="default" type="button" (click)="nav.previousStep()">
             Voltar
           </button>
         } @else {
@@ -366,8 +368,8 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
           </button>
         }
 
-        @if (currentStep() < totalSteps - 1) {
-          <button z-button zType="default" zSize="default" type="button" (click)="nextStep()">
+        @if (nav.currentStep() < totalSteps - 1) {
+          <button z-button zType="default" zSize="default" type="button" (click)="nav.nextStep()">
             Próximo
           </button>
         } @else {
@@ -396,13 +398,12 @@ export class PointFormDialog implements OnInit {
   protected readonly isEdit = computed(() => this.data !== null);
   protected readonly submitting = signal(false);
   protected readonly adminUnities = signal<AdminUnity[]>([]);
-  protected readonly currentStep = signal(0);
   protected readonly totalSteps = STEP_LABELS.length;
   protected readonly stepLabels = STEP_LABELS;
-
   protected readonly pointTypeOptions = POINT_TYPE_OPTIONS;
-
   protected readonly anprInherit = signal(this.computeInitialInherit());
+
+  protected readonly nav = createStepNavigation(STEP_LABELS.length);
 
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
 
@@ -465,25 +466,8 @@ export class PointFormDialog implements OnInit {
     void this.carregarOpcoes();
   }
 
-  protected firstError(field: FieldState<string | number | boolean | null, string>): string {
-    const errors = field.errors();
-    return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
-  }
-
-  protected onStepChange(index: number): void {
-    this.currentStep.set(index);
-  }
-
-  protected nextStep(): void {
-    if (this.currentStep() < this.totalSteps - 1) {
-      this.currentStep.update((s) => s + 1);
-    }
-  }
-
-  protected previousStep(): void {
-    if (this.currentStep() > 0) {
-      this.currentStep.update((s) => s - 1);
-    }
+  protected getError(field: FieldState<string | number | boolean | null, string>): string {
+    return firstError(field);
   }
 
   protected cancelar(): void {

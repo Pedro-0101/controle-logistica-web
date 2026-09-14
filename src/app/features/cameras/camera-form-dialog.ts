@@ -18,6 +18,8 @@ import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { CameraService } from '@/shared/services/camera.service';
 import { PointService } from '@/shared/services/point.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { firstError } from '@/shared/utils/form-utils';
+import { createStepNavigation } from '@/shared/utils/step-navigation';
 import { NgIcon } from '@ng-icons/core';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
@@ -72,11 +74,11 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
     <form [formRoot]="cameraForm" class="flex flex-col gap-4" novalidate>
       <z-form-stepper
         [steps]="stepLabels"
-        [currentStep]="currentStep()"
+        [currentStep]="nav.currentStep()"
         (stepChange)="onStepChange($event)"
       />
 
-      @if (currentStep() === 0) {
+      @if (nav.currentStep() === 0) {
         <z-form-field>
           <z-form-label [zRequired]="true" for="camera-admin-unity">Unidade administrativa</z-form-label>
           <z-form-control>
@@ -89,7 +91,7 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
           </z-form-control>
           <z-form-description>Unidade física à qual a câmera pertence.</z-form-description>
           @if (cameraForm.adminUnityId().invalid() && cameraForm.adminUnityId().touched()) {
-            <z-form-message id="camera-admin-unity-error" [zError]="true">{{ firstError(cameraForm.adminUnityId()) }}</z-form-message>
+            <z-form-message id="camera-admin-unity-error" [zError]="true">{{ getError(cameraForm.adminUnityId()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -105,12 +107,12 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
           </z-form-control>
           <z-form-description>Ponto de controle onde a câmera está instalada.</z-form-description>
           @if (cameraForm.pointId().invalid() && cameraForm.pointId().touched()) {
-            <z-form-message id="camera-point-error" [zError]="true">{{ firstError(cameraForm.pointId()) }}</z-form-message>
+            <z-form-message id="camera-point-error" [zError]="true">{{ getError(cameraForm.pointId()) }}</z-form-message>
           }
         </z-form-field>
       }
 
-      @if (currentStep() === 1) {
+      @if (nav.currentStep() === 1) {
         <z-form-field>
           <z-form-label [zRequired]="true" for="camera-name">Nome</z-form-label>
           <z-form-control>
@@ -127,7 +129,7 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
             />
           </z-form-control>
           @if (cameraForm.name().invalid() && cameraForm.name().touched()) {
-            <z-form-message id="camera-name-error" [zError]="true">{{ firstError(cameraForm.name()) }}</z-form-message>
+            <z-form-message id="camera-name-error" [zError]="true">{{ getError(cameraForm.name()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -148,7 +150,7 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
             </z-form-control>
             <z-form-description>Endereço IPv4 da câmera na rede local.</z-form-description>
             @if (cameraForm.ip().invalid() && cameraForm.ip().touched()) {
-              <z-form-message id="camera-ip-error" [zError]="true">{{ firstError(cameraForm.ip()) }}</z-form-message>
+              <z-form-message id="camera-ip-error" [zError]="true">{{ getError(cameraForm.ip()) }}</z-form-message>
             }
           </z-form-field>
 
@@ -184,7 +186,7 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
         </z-form-field>
       }
 
-      @if (currentStep() === 2) {
+      @if (nav.currentStep() === 2) {
         <z-form-field>
           <z-form-label for="camera-username">Usuário</z-form-label>
           <z-form-control>
@@ -259,18 +261,18 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
           zType="ghost"
           zSize="default"
           type="button"
-          (click)="currentStep() > 0 ? onStepChange(currentStep() - 1) : cancelar()"
+          (click)="nav.currentStep() > 0 ? onStepChange(nav.currentStep() - 1) : cancelar()"
         >
-          {{ currentStep() > 0 ? 'Anterior' : 'Cancelar' }}
+          {{ nav.currentStep() > 0 ? 'Anterior' : 'Cancelar' }}
         </button>
 
-        @if (currentStep() < totalSteps - 1) {
+        @if (nav.currentStep() < totalSteps - 1) {
           <button
             z-button
             zType="default"
             zSize="default"
             type="button"
-            (click)="onStepChange(currentStep() + 1)"
+            (click)="onStepChange(nav.currentStep() + 1)"
             [zDisabled]="!isCurrentStepValid()"
           >
             Próximo
@@ -306,7 +308,8 @@ export class CameraFormDialog implements OnInit {
   protected readonly authTypeOptions = AUTH_TYPE_OPTIONS;
   protected readonly stepLabels = STEP_LABELS;
   protected readonly totalSteps = STEP_LABELS.length;
-  protected readonly currentStep = signal(0);
+
+  protected readonly nav = createStepNavigation(STEP_LABELS.length);
 
   protected readonly filteredPoints = computed(() => {
     const adminUnityId = this.model().adminUnityId;
@@ -374,9 +377,8 @@ export class CameraFormDialog implements OnInit {
     void this.carregarOpcoes();
   }
 
-  protected firstError(field: FieldState<string, string>): string {
-    const errors = field.errors();
-    return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
+  protected getError(field: FieldState<string, string>): string {
+    return firstError(field);
   }
 
   protected cancelar(): void {
@@ -384,18 +386,18 @@ export class CameraFormDialog implements OnInit {
   }
 
   protected onStepChange(index: number): void {
-    if (index < this.currentStep()) {
-      this.currentStep.set(index);
+    if (index < this.nav.currentStep()) {
+      this.nav.goToStep(index);
       return;
     }
     if (this.isCurrentStepValid()) {
-      this.currentStep.set(index);
+      this.nav.goToStep(index);
     }
   }
 
   protected isCurrentStepValid(): boolean {
     const m = this.model();
-    switch (this.currentStep()) {
+    switch (this.nav.currentStep()) {
       case 0:
         return !!m.adminUnityId && !!m.pointId;
       case 1:

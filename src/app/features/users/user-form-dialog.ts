@@ -9,6 +9,8 @@ import type { ApiError, CreateUserRequest, ManagedUser, Point, UpdateUserRequest
 import { LoggerService } from '@/shared/services/logger.service';
 import { PointService } from '@/shared/services/point.service';
 import { UserService } from '@/shared/services/user.service';
+import { firstError } from '@/shared/utils/form-utils';
+import { createStepNavigation } from '@/shared/utils/step-navigation';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
 import {
@@ -52,11 +54,11 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
     <form [formRoot]="userForm" class="flex flex-col gap-4" novalidate>
       <z-form-stepper
         [steps]="stepLabels"
-        [currentStep]="currentStep()"
+        [currentStep]="nav.currentStep()"
         (stepChange)="onStepChange($event)"
       />
 
-      @if (currentStep() === 0) {
+      @if (nav.currentStep() === 0) {
         <z-form-field>
           <z-form-label [zRequired]="true" for="user-name">Nome</z-form-label>
           <z-form-control>
@@ -73,7 +75,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
             />
           </z-form-control>
           @if (userForm.name().invalid() && userForm.name().touched()) {
-            <z-form-message id="user-name-error" [zError]="true">{{ firstError(userForm.name()) }}</z-form-message>
+            <z-form-message id="user-name-error" [zError]="true">{{ getError(userForm.name()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -93,7 +95,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
             />
           </z-form-control>
           @if (userForm.email().invalid() && userForm.email().touched()) {
-            <z-form-message id="user-email-error" [zError]="true">{{ firstError(userForm.email()) }}</z-form-message>
+            <z-form-message id="user-email-error" [zError]="true">{{ getError(userForm.email()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -113,7 +115,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
             />
           </z-form-control>
           @if (userForm.password().invalid() && userForm.password().touched()) {
-            <z-form-message id="user-password-error" [zError]="true">{{ firstError(userForm.password()) }}</z-form-message>
+            <z-form-message id="user-password-error" [zError]="true">{{ getError(userForm.password()) }}</z-form-message>
           }
         </z-form-field>
 
@@ -129,7 +131,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
         </z-form-field>
       }
 
-      @if (currentStep() === 1) {
+      @if (nav.currentStep() === 1) {
         @if (loadingPoints()) {
           <div class="py-10 text-center text-muted-foreground">Carregando pontos...</div>
         } @else if (availablePoints().length === 0) {
@@ -172,18 +174,18 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
           zType="ghost"
           zSize="default"
           type="button"
-          (click)="currentStep() > 0 ? onStepChange(currentStep() - 1) : cancelar()"
+          (click)="nav.currentStep() > 0 ? onStepChange(nav.currentStep() - 1) : cancelar()"
         >
-          {{ currentStep() > 0 ? 'Anterior' : 'Cancelar' }}
+          {{ nav.currentStep() > 0 ? 'Anterior' : 'Cancelar' }}
         </button>
 
-        @if (currentStep() < totalSteps - 1) {
+        @if (nav.currentStep() < totalSteps - 1) {
           <button
             z-button
             zType="default"
             zSize="default"
             type="button"
-            (click)="onStepChange(currentStep() + 1)"
+            (click)="onStepChange(nav.currentStep() + 1)"
             [zDisabled]="!isCurrentStepValid()"
           >
             Próximo
@@ -216,10 +218,11 @@ export class UserFormDialog implements OnInit {
   protected readonly totalSteps = STEP_LABELS.length;
   protected readonly isEdit = computed(() => this.data !== null);
   protected readonly submitting = signal(false);
-  protected readonly currentStep = signal(0);
   protected readonly loadingPoints = signal(false);
   protected readonly availablePoints = signal<Point[]>([]);
   protected readonly selectedPointIds = signal<Set<string>>(new Set());
+
+  protected readonly nav = createStepNavigation(STEP_LABELS.length);
 
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
 
@@ -282,9 +285,8 @@ export class UserFormDialog implements OnInit {
     void this.carregarPontos();
   }
 
-  protected firstError(field: FieldState<string, string>): string {
-    const errors = field.errors();
-    return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
+  protected getError(field: FieldState<string, string>): string {
+    return firstError(field);
   }
 
   protected cancelar(): void {
@@ -292,17 +294,17 @@ export class UserFormDialog implements OnInit {
   }
 
   protected onStepChange(index: number): void {
-    if (index < this.currentStep()) {
-      this.currentStep.set(index);
+    if (index < this.nav.currentStep()) {
+      this.nav.goToStep(index);
       return;
     }
     if (this.isCurrentStepValid()) {
-      this.currentStep.set(index);
+      this.nav.goToStep(index);
     }
   }
 
   protected isCurrentStepValid(): boolean {
-    if (this.currentStep() === 0) {
+    if (this.nav.currentStep() === 0) {
       const m = this.model();
       return !!m.name && !!m.email && !!m.role && (!this.isEdit() || true) && (this.isEdit() || !!m.password);
     }

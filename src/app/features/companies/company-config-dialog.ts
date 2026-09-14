@@ -9,6 +9,7 @@ import { NgIcon } from '@ng-icons/core';
 import type { ApiError, CompanyConfig, UpdateCompanyConfigRequest } from '@/shared/models';
 import { CompanyConfigService } from '@/shared/services/company-config.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { firstError } from '@/shared/utils/form-utils';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
 import {
@@ -95,7 +96,7 @@ export interface ConfigDialogData {
             </z-form-control>
             <z-form-description>Padrão: America/Sao_Paulo.</z-form-description>
             @if (configForm.timezone().invalid() && configForm.timezone().touched()) {
-              <z-form-message id="cfg-timezone-error" [zError]="true">{{ firstError(configForm.timezone()) }}</z-form-message>
+              <z-form-message id="cfg-timezone-error" [zError]="true">{{ getError(configForm.timezone()) }}</z-form-message>
             }
           </z-form-field>
 
@@ -115,7 +116,7 @@ export interface ConfigDialogData {
             </z-form-control>
             <z-form-description>Padrão: pt-BR.</z-form-description>
             @if (configForm.language().invalid() && configForm.language().touched()) {
-              <z-form-message id="cfg-language-error" [zError]="true">{{ firstError(configForm.language()) }}</z-form-message>
+              <z-form-message id="cfg-language-error" [zError]="true">{{ getError(configForm.language()) }}</z-form-message>
             }
           </z-form-field>
         </div>
@@ -180,7 +181,7 @@ export interface ConfigDialogData {
             </z-form-control>
             <z-form-description>Porta TCP usada pelas câmeras. Padrão: 80.</z-form-description>
             @if (configForm.cameraDefaultPort().invalid() && configForm.cameraDefaultPort().touched()) {
-              <z-form-message id="cfg-port-error" [zError]="true">{{ firstError(configForm.cameraDefaultPort()) }}</z-form-message>
+              <z-form-message id="cfg-port-error" [zError]="true">{{ getError(configForm.cameraDefaultPort()) }}</z-form-message>
             }
           </z-form-field>
 
@@ -206,7 +207,7 @@ export interface ConfigDialogData {
             </z-form-control>
             <z-form-description>Intervalo entre capturas de imagem. Padrão: 1000 ms.</z-form-description>
             @if (configForm.cameraSnapshotIntervalMs().invalid() && configForm.cameraSnapshotIntervalMs().touched()) {
-              <z-form-message id="cfg-snapshot-error" [zError]="true">{{ firstError(configForm.cameraSnapshotIntervalMs()) }}</z-form-message>
+              <z-form-message id="cfg-snapshot-error" [zError]="true">{{ getError(configForm.cameraSnapshotIntervalMs()) }}</z-form-message>
             }
           </z-form-field>
         </div>
@@ -240,7 +241,7 @@ export interface ConfigDialogData {
             </z-form-control>
             <z-form-description>Valor entre 0 e 1. Padrão: 0.85.</z-form-description>
             @if (configForm.anprConfidenceThreshold().invalid() && configForm.anprConfidenceThreshold().touched()) {
-              <z-form-message id="cfg-confidence-error" [zError]="true">{{ firstError(configForm.anprConfidenceThreshold()) }}</z-form-message>
+              <z-form-message id="cfg-confidence-error" [zError]="true">{{ getError(configForm.anprConfidenceThreshold()) }}</z-form-message>
             }
           </z-form-field>
 
@@ -514,9 +515,8 @@ export class CompanyConfigDialog {
     });
   }
 
-  protected firstError<V>(field: FieldState<V, string>): string {
-    const errors = field.errors();
-    return errors.length ? errors[0].message ?? 'Valor inválido.' : '';
+  protected getError<V>(field: FieldState<V, string>): string {
+    return firstError(field);
   }
 
   protected cancelar(): void {
