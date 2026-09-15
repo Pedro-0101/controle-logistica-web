@@ -1,4 +1,6 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, ViewContainerRef } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { take } from 'rxjs';
 import { NgIcon } from '@ng-icons/core';
 import { SiteHeader } from '@/shared/components/site-header/site-header';
 import { ZardButtonComponent } from '@/shared/components/button';
@@ -8,12 +10,15 @@ import { ZardBadgeComponent } from '@/shared/components/badge';
 import { ZardSelectImports } from '@/shared/components/select';
 import { ZardInputDirective } from '@/shared/components/input';
 import { ZardPaginationComponent } from '@/shared/components/pagination/pagination.component';
+import { ZardDialogService } from '@/shared/components/dialog';
 import { MovementService } from '@/shared/services/movement.service';
 import type { MovementListItem, MovementFilters } from '@/shared/models';
+import { MovementEditDialog } from '@/features/movements/movement-edit-dialog';
 
 @Component({
   selector: 'app-home',
   imports: [
+    RouterLink,
     SiteHeader,
     NgIcon,
     ZardButtonComponent,
@@ -31,6 +36,25 @@ import type { MovementListItem, MovementFilters } from '@/shared/models';
         <h1 class="text-lg font-semibold">Dashboard</h1>
         <p class="text-sm text-muted-foreground">Visão geral das movimentações e operações.</p>
       </div>
+
+      @if (pendentes() > 0) {
+        <a
+          routerLink="/movimentos/pendentes"
+          class="flex items-center gap-3 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning transition-colors hover:bg-warning/20"
+        >
+          <ng-icon name="lucideTriangleAlert" aria-hidden="true" class="size-4 shrink-0" />
+          <span>
+            {{ pendentes() }}
+            {{
+              pendentes() === 1
+                ? 'movimentação aguardando revisão'
+                : 'movimentações aguardando revisão'
+            }}
+            — leituras de placa não reconhecidas.
+          </span>
+          <span class="ml-auto font-medium underline underline-offset-4">Revisar agora</span>
+        </a>
+      }
 
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-medium">Movimentações</h2>
@@ -99,6 +123,7 @@ import type { MovementListItem, MovementFilters } from '@/shared/models';
               <th z-table-head>Motorista</th>
               <th z-table-head>Motivo</th>
               <th z-table-head>Origem</th>
+              <th z-table-head class="text-right">Ações</th>
             </tr>
           </thead>
           <tbody z-table-body>
@@ -115,7 +140,9 @@ import type { MovementListItem, MovementFilters } from '@/shared/models';
                     {{ statusLabel(m.status) }}
                   </z-badge>
                 </td>
-                <td z-table-cell class="font-mono">{{ m.vehicle?.plate ?? m.recognizedPlate ?? '—' }}</td>
+                <td z-table-cell class="font-mono">
+                  {{ m.vehicle?.plate ?? m.recognizedPlate ?? '—' }}
+                </td>
                 <td z-table-cell>
                   @if (m.vehicle) {
                     <span>{{ m.vehicle.code }}</span>
@@ -137,10 +164,40 @@ import type { MovementListItem, MovementFilters } from '@/shared/models';
                     <span class="text-muted-foreground">Manual</span>
                   }
                 </td>
+                <td z-table-cell class="text-right">
+                  @if (m.status === 'pending_review') {
+                    <a
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      routerLink="/movimentos/pendentes"
+                      [attr.aria-label]="
+                        'Revisar movimentação da placa ' +
+                        (m.vehicle?.plate ?? m.recognizedPlate ?? 'desconhecida')
+                      "
+                    >
+                      <ng-icon name="lucideSearch" aria-hidden="true" />
+                    </a>
+                  } @else {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      type="button"
+                      (click)="abrirEditar(m)"
+                      [attr.aria-label]="
+                        'Editar movimentação da placa ' +
+                        (m.vehicle?.plate ?? m.recognizedPlate ?? 'desconhecida')
+                      "
+                    >
+                      <ng-icon name="lucidePencil" aria-hidden="true" />
+                    </button>
+                  }
+                </td>
               </tr>
             } @empty {
               <tr z-table-row>
-                <td z-table-cell colspan="10" class="py-10 text-center text-muted-foreground">
+                <td z-table-cell colspan="11" class="py-10 text-center text-muted-foreground">
                   Nenhuma movimentação encontrada.
                 </td>
               </tr>
@@ -164,9 +221,12 @@ import type { MovementListItem, MovementFilters } from '@/shared/models';
 })
 export class Home implements OnInit, OnDestroy {
   private readonly movementService = inject(MovementService);
+  private readonly dialog = inject(ZardDialogService);
+  private readonly vcr = inject(ViewContainerRef);
 
   readonly movimentos = signal<MovementListItem[]>([]);
   readonly loading = signal(false);
+  readonly pendentes = signal(0);
   readonly refreshInterval = signal<string>('0');
   readonly paginaAtual = signal(1);
   readonly limit = signal(20);
@@ -224,6 +284,30 @@ export class Home implements OnInit, OnDestroy {
       error: () => {
         this.loading.set(false);
       },
+    });
+
+    this.movementService.pendingReview().subscribe({
+      next: (pendentes) => this.pendentes.set(pendentes.length),
+    });
+  }
+
+  abrirEditar(movimento: MovementListItem): void {
+    const ref = this.dialog.create<MovementEditDialog, MovementListItem>({
+      zContent: MovementEditDialog,
+      zData: movimento,
+      zViewContainerRef: this.vcr,
+      zTitle: 'Editar movimentação',
+      zDescription:
+        'Corrija os dados operacionais da movimentação. Apenas os campos alterados são salvos.',
+      zHideFooter: true,
+      zWidth: '28rem',
+      zMaskClosable: false,
+    });
+
+    ref.afterClosed.pipe(take(1)).subscribe((result) => {
+      if (result) {
+        this.carregar();
+      }
     });
   }
 
