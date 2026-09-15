@@ -608,11 +608,11 @@ export class CompanyProfile {
 
     if (cfg) {
       this.recognitionModel.set({
-        anprConfidenceThreshold: cfg.anprConfidenceThreshold,
-        anprMatchTimeoutSeconds: cfg.anprMatchTimeoutSeconds,
-        anprConfirmationReads: cfg.anprConfirmationReads,
-        anprStaleAfterSeconds: cfg.anprStaleAfterSeconds,
-        anprAutoRegisterCooldownSeconds: cfg.anprAutoRegisterCooldownSeconds,
+        anprConfidenceThreshold: Number(cfg.anprConfidenceThreshold),
+        anprMatchTimeoutSeconds: Number(cfg.anprMatchTimeoutSeconds),
+        anprConfirmationReads: Number(cfg.anprConfirmationReads),
+        anprStaleAfterSeconds: Number(cfg.anprStaleAfterSeconds),
+        anprAutoRegisterCooldownSeconds: Number(cfg.anprAutoRegisterCooldownSeconds),
         anprAutoRegister: cfg.anprAutoRegister,
         anprSaveUnrecognizedPhotos: cfg.anprSaveUnrecognizedPhotos,
       });

@@ -415,11 +415,11 @@ export class PointFormDialog implements OnInit {
     active: this.data?.active ?? true,
     anprAutoRegister: this.data?.anprAutoRegister ?? true,
     anprSaveUnrecognizedPhotos: this.data?.anprSaveUnrecognizedPhotos ?? false,
-    anprAutoRegisterCooldownSeconds: this.data?.anprAutoRegisterCooldownSeconds ?? null,
-    anprConfidenceThreshold: this.data?.anprConfidenceThreshold ?? null,
-    anprMatchTimeoutSeconds: this.data?.anprMatchTimeoutSeconds ?? null,
-    anprConfirmationReads: this.data?.anprConfirmationReads ?? null,
-    anprStaleAfterSeconds: this.data?.anprStaleAfterSeconds ?? null,
+    anprAutoRegisterCooldownSeconds: this.data?.anprAutoRegisterCooldownSeconds != null ? Number(this.data.anprAutoRegisterCooldownSeconds) : null,
+    anprConfidenceThreshold: this.data?.anprConfidenceThreshold != null ? Number(this.data.anprConfidenceThreshold) : null,
+    anprMatchTimeoutSeconds: this.data?.anprMatchTimeoutSeconds != null ? Number(this.data.anprMatchTimeoutSeconds) : null,
+    anprConfirmationReads: this.data?.anprConfirmationReads != null ? Number(this.data.anprConfirmationReads) : null,
+    anprStaleAfterSeconds: this.data?.anprStaleAfterSeconds != null ? Number(this.data.anprStaleAfterSeconds) : null,
   });
 
   protected readonly pointForm = form(
