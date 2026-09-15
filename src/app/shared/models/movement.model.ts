@@ -65,6 +65,71 @@ export interface PaginatedMovements {
   meta: PaginatedMeta;
 }
 
+/**
+ * Movimento pendente de revisão, conforme retornado por
+ * `GET /movement/pending-review` (placa lida pelo ANPR não encontrada na base).
+ */
+export interface PendingReviewMovement {
+  id: string;
+  observationId: string | null;
+  pointId: string | null;
+  vehicleId: string | null;
+  recognizedPlate: string | null;
+  type: MovementType;
+  dateTime: string;
+  status: 'pending_review';
+  companyId: string;
+  autoRegistered: boolean;
+  photoPath: string | null;
+  createdAt: string;
+}
+
+/**
+ * Movimento no formato plano (sem resumos de ponto/veículo/câmera), retornado
+ * por `GET /movement/{id}`, `PATCH /movement/{id}` e `POST /movement/{id}/recalculate`.
+ */
+export interface MovementDetail {
+  id: string;
+  pointId: string | null;
+  vehicleId: string | null;
+  type: MovementType;
+  dateTime: string;
+  status: MovementStatus;
+  companyId: string;
+  recognizedPlate: string | null;
+  autoRegistered: boolean;
+  recalculatedAt: string | null;
+  purpose: string | null;
+  driverName: string | null;
+  notes: string | null;
+  createdById: string;
+  updatedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  observationId: string | null;
+}
+
+/** Status aceito por `PATCH /movement/{id}` (não permite `pending_review`). */
+export type MovementEditableStatus = 'open' | 'closed';
+
+/** Corpo do `POST /movement/{id}/recalculate` — informar `plate` ou `vehicleId`. */
+export interface RecalculateMovementPayload {
+  plate?: string;
+  vehicleId?: string;
+}
+
+/** Corpo do `PATCH /movement/{id}` — todos os campos são opcionais. */
+export interface UpdateMovementPayload {
+  pointId?: string;
+  vehicleId?: string;
+  type?: MovementType;
+  dateTime?: string;
+  status?: MovementEditableStatus;
+  purpose?: string;
+  driverName?: string;
+  notes?: string;
+}
+
 /** Filtros para listagem de movimentações. */
 export interface MovementFilters {
   page?: number;
