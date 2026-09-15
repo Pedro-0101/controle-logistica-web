@@ -12,9 +12,10 @@ import {
 import { LoadingSpinner } from '@/shared/components/loading-spinner/loading-spinner';
 import { EmptyState } from '@/shared/components/empty-state/empty-state';
 import { CameraService } from '@/shared/services/camera.service';
+import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { LocalStorageService } from '@/shared/services/local-storage.service';
 import { LoggerService } from '@/shared/services/logger.service';
-import type { Camera } from '@/shared/models';
+import type { AdminUnity, Camera } from '@/shared/models';
 
 type LayoutType = '1' | '2' | '4';
 
@@ -25,6 +26,7 @@ interface CameraSlot {
 
 const LAYOUT_KEY = 'camera-layout';
 const SLOTS_KEY = 'camera-slots';
+const ADMIN_UNITY_KEY = 'camera-admin-unity';
 
 const SLOT_COUNT_MAP: Record<LayoutType, number> = { '1': 1, '2': 2, '4': 4 };
 
@@ -63,15 +65,15 @@ const GRID_CLASSES: Record<LayoutType, string> = {
       } @else if (error()) {
         <div class="flex flex-col items-center gap-3 py-12">
           <p class="text-sm text-destructive">{{ error() }}</p>
-          <button z-button zType="outline" zSize="sm" (click)="loadCameras()">
+          <button z-button zType="outline" zSize="sm" (click)="loadInitialData()">
             Tentar novamente
           </button>
         </div>
-      } @else if (cameras().length === 0) {
+      } @else if (adminUnities().length === 0) {
         <gp-empty-state
-          icon="lucideCamera"
-          title="Nenhuma câmera encontrada"
-          description="Cadastre câmeras para visualizar o monitoramento em tempo real."
+          icon="lucideBuilding"
+          title="Nenhuma unidade encontrada"
+          description="Cadastre unidades administrativas para visualizar o monitoramento."
         />
       } @else {
         <section class="flex min-h-0 flex-1 flex-col gap-3 pb-2">
@@ -119,6 +121,20 @@ const GRID_CLASSES: Record<LayoutType, string> = {
               }
             </div>
 
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground">Unidade:</span>
+              <z-combobox
+                zPlaceholder="Selecione uma unidade"
+                zSearchPlaceholder="Buscar unidade..."
+                zEmptyText="Nenhuma unidade disponível"
+                zWidth="lg"
+                [zOptions]="adminUnityOptions()"
+                [zValue]="selectedAdminUnityId()"
+                zAriaLabel="Selecionar unidade administrativa"
+                (zComboSelected)="onAdminUnityChange($event.value)"
+              />
+            </div>
+
             <div class="flex flex-wrap items-center gap-3">
               @for (slot of visibleSlots(); track slot.index) {
                 <div class="flex items-center gap-2">
@@ -127,6 +143,7 @@ const GRID_CLASSES: Record<LayoutType, string> = {
                     zPlaceholder="Selecione uma câmera"
                     zSearchPlaceholder="Buscar câmera..."
                     zEmptyText="Nenhuma câmera disponível"
+                    zWidth="md"
                     [zOptions]="slotOptions(slot.index)"
                     [zValue]="slot.cameraId"
                     [zAriaLabel]="'Selecionar câmera para slot ' + (slot.index + 1)"
@@ -147,7 +164,7 @@ const GRID_CLASSES: Record<LayoutType, string> = {
               @for (slot of visibleSlots(); track slot.index) {
                 @if (getCameraForSlot(slot); as camera) {
                   @if (camera.streamUrls?.hlsUrl) {
-                    <gp-camera-stream
+                      <gp-camera-stream
                       [src]="camera.streamUrls.hlsUrl"
                       [title]="camera.name"
                       [anpr]="true"
@@ -190,12 +207,16 @@ const GRID_CLASSES: Record<LayoutType, string> = {
 })
 export class CamerasMonitoring implements OnInit {
   private readonly cameraService = inject(CameraService);
+  private readonly adminUnityService = inject(AdminUnityService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly logger = inject(LoggerService).create('CamerasMonitoring');
 
   protected readonly cameras = signal<Camera[]>([]);
+  protected readonly adminUnities = signal<AdminUnity[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+
+  protected readonly selectedAdminUnityId = signal<string | null>(this.loadAdminUnityId());
 
   protected readonly layout = signal<LayoutType>(this.loadLayout());
   protected readonly slots = signal<CameraSlot[]>(this.loadSlots());
@@ -205,6 +226,19 @@ export class CamerasMonitoring implements OnInit {
     { value: '2', label: '2' },
     { value: '4', label: '4' },
   ];
+
+  protected readonly adminUnityOptions = computed<ZardComboboxOption[]>(() =>
+    this.adminUnities().map((u) => ({
+      value: u.id,
+      label: u.name,
+    })),
+  );
+
+  protected readonly filteredCameras = computed(() => {
+    const unitId = this.selectedAdminUnityId();
+    if (!unitId) return this.cameras();
+    return this.cameras().filter((c) => c.adminUnityId === unitId);
+  });
 
   protected readonly visibleSlots = computed(() => {
     const count = SLOT_COUNT_MAP[this.layout()];
@@ -227,7 +261,30 @@ export class CamerasMonitoring implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadCameras();
+    this.loadInitialData();
+  }
+
+  protected loadInitialData(): void {
+    this.loading.set(true);
+    this.error.set(null);
+
+    Promise.all([this.cameraService.list().toPromise(), this.adminUnityService.list().toPromise()])
+      .then(([cameras, units]) => {
+        this.cameras.set(cameras ?? []);
+        this.adminUnities.set(units ?? []);
+        this.loading.set(false);
+
+        if (!this.selectedAdminUnityId() && units && units.length > 0) {
+          this.onAdminUnityChange(units[0].id);
+        } else {
+          this.autoAssignIfEmpty(this.filteredCameras());
+        }
+      })
+      .catch((err) => {
+        this.loading.set(false);
+        this.error.set('Falha ao carregar dados. Tente novamente.');
+        this.logger.error('Erro ao carregar dados iniciais', err);
+      });
   }
 
   protected setLayout(value: LayoutType): void {
@@ -235,8 +292,15 @@ export class CamerasMonitoring implements OnInit {
     this.localStorage.set(LAYOUT_KEY, value);
   }
 
-  protected slotOptions(slotIndex: number): ZardComboboxOption[] {
-    return this.cameras().map((c) => ({
+  protected onAdminUnityChange(unitId: string | null): void {
+    this.selectedAdminUnityId.set(unitId);
+    this.localStorage.set(ADMIN_UNITY_KEY, unitId);
+    this.slots.update((current) => current.map((s) => ({ ...s, cameraId: null })));
+    this.autoAssignIfEmpty(this.filteredCameras());
+  }
+
+  protected slotOptions(_slotIndex: number): ZardComboboxOption[] {
+    return this.filteredCameras().map((c) => ({
       value: c.id,
       label: c.name,
     }));
@@ -244,7 +308,7 @@ export class CamerasMonitoring implements OnInit {
 
   protected getCameraForSlot(slot: CameraSlot): Camera | undefined {
     if (!slot.cameraId) return undefined;
-    return this.cameras().find((c) => c.id === slot.cameraId);
+    return this.filteredCameras().find((c) => c.id === slot.cameraId);
   }
 
   protected onSlotCameraChange(slotIndex: number, cameraId: string | null): void {
@@ -260,25 +324,6 @@ export class CamerasMonitoring implements OnInit {
     });
   }
 
-  protected loadCameras(): void {
-    this.loading.set(true);
-    this.error.set(null);
-
-    this.cameraService.list().subscribe({
-      next: (cameras) => {
-        this.cameras.set(cameras);
-        this.loading.set(false);
-        this.autoAssignIfEmpty(cameras);
-        this.logger.info('Câmeras carregadas', { count: cameras.length });
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set('Falha ao carregar câmeras. Tente novamente.');
-        this.logger.error('Erro ao carregar câmeras', err);
-      },
-    });
-  }
-
   private autoAssignIfEmpty(cameras: Camera[]): void {
     const hasAssigned = this.slots().some((s) => s.cameraId !== null);
     if (hasAssigned || cameras.length === 0) return;
@@ -289,6 +334,10 @@ export class CamerasMonitoring implements OnInit {
       initial.push({ index: i, cameraId: cameras[i % cameras.length]?.id ?? null });
     }
     this.slots.set(initial);
+  }
+
+  private loadAdminUnityId(): string | null {
+    return this.localStorage.get<string>(ADMIN_UNITY_KEY);
   }
 
   private loadLayout(): LayoutType {

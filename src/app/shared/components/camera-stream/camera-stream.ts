@@ -2,6 +2,7 @@ import {
   afterNextRender,
   Component,
   computed,
+  effect,
   ElementRef,
   inject,
   input,
@@ -84,6 +85,14 @@ export class CameraStream implements OnDestroy {
 
   constructor() {
     afterNextRender(() => this.setup());
+    let initial = true;
+    effect(() => {
+      const src = this.src();
+      if (!initial) {
+        this.retry();
+      }
+      initial = false;
+    });
   }
 
   ngOnDestroy(): void {
