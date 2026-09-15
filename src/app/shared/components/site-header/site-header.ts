@@ -25,7 +25,9 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
       </a>
 
       <nav class="flex items-center gap-1" aria-label="Navegação principal">
-        <a z-button zType="ghost" zSize="sm" routerLink="/home" routerLinkActive="bg-accent">Início</a>
+        <a z-button zType="ghost" zSize="sm" routerLink="/home" routerLinkActive="bg-accent"
+          >Início</a
+        >
 
         <z-navigation-menu>
           <div z-navigation-menu-list>
@@ -110,6 +112,26 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
             </div>
 
             <div z-navigation-menu-item>
+              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="movimentosMenu">
+                Movimentações
+              </button>
+              <ng-template #movimentosMenu>
+                <div z-navigation-menu-content class="w-56">
+                  <a
+                    z-navigation-menu-link
+                    routerLink="/movimentos/pendentes"
+                    routerLinkActive
+                    #linkPendentes="routerLinkActive"
+                    [zActive]="linkPendentes.isActive"
+                  >
+                    <ng-icon name="lucideInbox" aria-hidden="true" />
+                    Revisão pendente
+                  </a>
+                </div>
+              </ng-template>
+            </div>
+
+            <div z-navigation-menu-item>
               <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="camerasMenu">
                 Câmeras
               </button>
@@ -140,7 +162,13 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
             </div>
 
             @if (isAdmin()) {
-              <a z-button zType="ghost" zSize="sm" routerLink="/minha-empresa" routerLinkActive="bg-accent">
+              <a
+                z-button
+                zType="ghost"
+                zSize="sm"
+                routerLink="/minha-empresa"
+                routerLinkActive="bg-accent"
+              >
                 Minha Empresa
               </a>
             }
@@ -180,14 +208,18 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
           [attr.aria-pressed]="temaSvc.isDark()"
           aria-label="Alternar tema"
         >
-          <ng-icon [name]="temaSvc.isDark() ? 'lucideSun' : 'lucideMoon'" aria-hidden="true" class="size-4" />
+          <ng-icon
+            [name]="temaSvc.isDark() ? 'lucideSun' : 'lucideMoon'"
+            aria-hidden="true"
+            class="size-4"
+          />
         </button>
 
         <div class="relative">
           <button
             type="button"
             class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            (click)="menuAberto.update(v => !v); $event.stopPropagation()"
+            (click)="menuAberto.update((v) => !v); $event.stopPropagation()"
             [attr.aria-expanded]="menuAberto()"
             aria-haspopup="true"
             aria-label="Menu do usuário"
@@ -232,8 +264,12 @@ export class SiteHeader {
 
   protected readonly isRoot = computed(() => this.session.usuario()?.companyId === null);
   protected readonly isAdmin = computed(() => this.session.usuario()?.role === 'admin');
-  protected readonly brandName = computed(() => this.session.usuario()?.company?.companyName ?? 'Controle Logística');
-  protected readonly userName = computed(() => this.session.usuario()?.name ?? this.session.usuario()?.email ?? 'Usuário');
+  protected readonly brandName = computed(
+    () => this.session.usuario()?.company?.companyName ?? 'Controle Logística',
+  );
+  protected readonly userName = computed(
+    () => this.session.usuario()?.name ?? this.session.usuario()?.email ?? 'Usuário',
+  );
   protected readonly userEmail = computed(() => this.session.usuario()?.email ?? '');
 
   protected fazerLogout(): void {

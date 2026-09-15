@@ -16,6 +16,12 @@ export const routes: Routes = [
     title: 'Home',
   },
   {
+    path: 'movimentos/pendentes',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/movements/pending-review').then((m) => m.PendingReview),
+    title: 'Revisão de movimentações',
+  },
+  {
     path: 'usuarios',
     canActivate: [authGuard],
     loadComponent: () => import('./features/users/users').then((m) => m.Users),
@@ -24,7 +30,8 @@ export const routes: Routes = [
   {
     path: 'unidades',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/admin-unities/admin-unities').then((m) => m.AdminUnities),
+    loadComponent: () =>
+      import('./features/admin-unities/admin-unities').then((m) => m.AdminUnities),
     title: 'Gerenciar unidades',
   },
   {
@@ -54,13 +61,15 @@ export const routes: Routes = [
   {
     path: 'cameras/monitoramento',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/cameras/cameras-monitoring').then((m) => m.CamerasMonitoring),
+    loadComponent: () =>
+      import('./features/cameras/cameras-monitoring').then((m) => m.CamerasMonitoring),
     title: 'Monitoramento de câmeras',
   },
   {
     path: 'minha-empresa',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/company-profile/company-profile').then((m) => m.CompanyProfile),
+    loadComponent: () =>
+      import('./features/company-profile/company-profile').then((m) => m.CompanyProfile),
     title: 'Minha empresa',
   },
   { path: '**', redirectTo: 'home' },
