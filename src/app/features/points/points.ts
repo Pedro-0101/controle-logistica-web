@@ -19,7 +19,7 @@ import type { AdminUnity, Company, Point, PointType } from '@/shared/models';
 
 import { PointFormDialog } from './point-form-dialog';
 
-type StatusBadgeType = 'default' | 'outline';
+type StatusBadgeType = 'default' | 'outline' | 'secondary';
 
 const POINT_TYPE_LABELS: Record<PointType, string> = {
   entry: 'Entrada',
@@ -65,13 +65,14 @@ const POINT_TYPE_LABELS: Record<PointType, string> = {
               <th z-table-head>Unidade</th>
               <th z-table-head>Empresa</th>
               <th z-table-head>Status</th>
+              <th z-table-head>Registro Automático</th>
               <th z-table-head class="text-right">Ações</th>
             </tr>
           </thead>
           <tbody z-table-body>
             @if (loading()) {
               <tr z-table-row>
-                <td z-table-cell colspan="7" class="py-10 text-center text-muted-foreground">Carregando...</td>
+                <td z-table-cell colspan="8" class="py-10 text-center text-muted-foreground">Carregando...</td>
               </tr>
             } @else {
               @for (ponto of pontos(); track ponto.id) {
@@ -84,6 +85,11 @@ const POINT_TYPE_LABELS: Record<PointType, string> = {
                   <td z-table-cell>
                     <z-badge [zType]="statusBadgeType(ponto.active)" zShape="default">
                       {{ ponto.active ? 'Ativo' : 'Inativo' }}
+                    </z-badge>
+                  </td>
+                  <td z-table-cell>
+                    <z-badge [zType]="anprBadgeType(ponto)" [class]="anprBadgeClass(ponto)" zShape="pill">
+                      {{ anprLabel(ponto) }}
                     </z-badge>
                   </td>
                   <td z-table-cell class="text-right">
@@ -113,7 +119,7 @@ const POINT_TYPE_LABELS: Record<PointType, string> = {
                 </tr>
               } @empty {
                 <tr z-table-row>
-                  <td z-table-cell colspan="7" class="py-10 text-center text-muted-foreground">
+                  <td z-table-cell colspan="8" class="py-10 text-center text-muted-foreground">
                     Nenhum ponto cadastrado.
                   </td>
                 </tr>
@@ -162,6 +168,26 @@ export class Points implements OnInit {
 
   protected statusBadgeType(active: boolean): StatusBadgeType {
     return active ? 'default' : 'outline';
+  }
+
+  protected anprLabel(ponto: Point): string {
+    return this.isAnprActive(ponto) ? 'Ativado' : 'Desativado';
+  }
+
+  protected anprBadgeType(ponto: Point): StatusBadgeType {
+    return this.isAnprActive(ponto) ? 'default' : 'outline';
+  }
+
+  protected anprBadgeClass(ponto: Point): string {
+    return this.isAnprActive(ponto)
+      ? 'bg-green-600 text-white hover:bg-green-700'
+      : 'bg-red-600 text-white hover:bg-red-700';
+  }
+
+  private isAnprActive(ponto: Point): boolean {
+    if (ponto.anprAutoRegister === true) return true;
+    if (ponto.anprAutoRegister === null && ponto.inheritCompanyConfig) return true;
+    return false;
   }
 
   protected abrirCriar(): void {

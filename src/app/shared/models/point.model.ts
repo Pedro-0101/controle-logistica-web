@@ -3,19 +3,21 @@ export type PointType = 'entry' | 'exit' | 'both';
 
 /** Configuração ANPR de um ponto. */
 export interface PointAnprConfig {
-  /** Habilitar registro automático de movimentação por ANPR. `null` = herda da empresa. */
+  /** Herda configurações ANPR da empresa. Se `true`, ignora os campos ANPR individuais. */
+  inheritCompanyConfig: boolean;
+  /** Habilitar registro automático de movimentação por ANPR (usado quando inheritCompanyConfig = false). */
   anprAutoRegister: boolean | null;
-  /** Salvar foto quando placa não reconhecida. `null` = herda da empresa. */
+  /** Salvar foto quando placa não reconhecida (usado quando inheritCompanyConfig = false). */
   anprSaveUnrecognizedPhotos: boolean | null;
-  /** Intervalo mínimo em segundos entre registros automáticos do mesmo veículo. `null` = herda da empresa. */
+  /** Intervalo mínimo em segundos entre registros automáticos do mesmo veículo. */
   anprAutoRegisterCooldownSeconds: number | null;
-  /** Confiança mínima (0–1) para aceitar leitura ANPR. `null` = herda da empresa. */
+  /** Confiança mínima (0–1) para aceitar leitura ANPR. */
   anprConfidenceThreshold: number | null;
-  /** Timeout em segundos para confirmar leitura de placa. `null` = herda da empresa. */
+  /** Timeout em segundos para confirmar leitura de placa. */
   anprMatchTimeoutSeconds: number | null;
-  /** Número de leituras consecutivas para confirmar placa. `null` = herda da empresa. */
+  /** Número de leituras consecutivas para confirmar placa. */
   anprConfirmationReads: number | null;
-  /** Tempo em segundos para considerar observação expirada. `null` = herda da empresa. */
+  /** Tempo em segundos para considerar observação expirada. */
   anprStaleAfterSeconds: number | null;
 }
 

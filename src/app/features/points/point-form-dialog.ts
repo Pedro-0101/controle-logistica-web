@@ -401,7 +401,7 @@ export class PointFormDialog implements OnInit {
   protected readonly totalSteps = STEP_LABELS.length;
   protected readonly stepLabels = STEP_LABELS;
   protected readonly pointTypeOptions = POINT_TYPE_OPTIONS;
-  protected readonly anprInherit = signal(this.computeInitialInherit());
+  protected readonly anprInherit = signal(this.data?.inheritCompanyConfig ?? true);
 
   protected readonly nav = createStepNavigation(STEP_LABELS.length);
 
@@ -478,17 +478,6 @@ export class PointFormDialog implements OnInit {
     this.anprInherit.set(value);
   }
 
-  private computeInitialInherit(): boolean {
-    if (!this.data) return true;
-    return this.data.anprAutoRegister === null
-      && this.data.anprSaveUnrecognizedPhotos === null
-      && this.data.anprAutoRegisterCooldownSeconds === null
-      && this.data.anprConfidenceThreshold === null
-      && this.data.anprMatchTimeoutSeconds === null
-      && this.data.anprConfirmationReads === null
-      && this.data.anprStaleAfterSeconds === null;
-  }
-
   private async carregarOpcoes(): Promise<void> {
     try {
       this.adminUnities.set(await firstValueFrom(this.adminUnityService.list()));
@@ -501,7 +490,8 @@ export class PointFormDialog implements OnInit {
   private buildAnprPayload(model: PointFormModel): PointAnprConfig {
     const inherit = this.anprInherit();
     return {
-      anprAutoRegister: inherit ? null : model.anprAutoRegister,
+      inheritCompanyConfig: inherit,
+      anprAutoRegister: model.anprAutoRegister ? (inherit ? null : true) : false,
       anprSaveUnrecognizedPhotos: inherit ? null : model.anprSaveUnrecognizedPhotos,
       anprAutoRegisterCooldownSeconds: inherit ? null : model.anprAutoRegisterCooldownSeconds,
       anprConfidenceThreshold: inherit ? null : model.anprConfidenceThreshold,
