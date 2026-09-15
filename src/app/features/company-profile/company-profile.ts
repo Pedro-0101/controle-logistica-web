@@ -1,26 +1,29 @@
 import { afterNextRender, Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import { FormField, FormRoot, email, form, required } from '@angular/forms/signals';
 import type { FieldState } from '@angular/forms/signals';
 import { firstValueFrom } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { NgIcon } from '@ng-icons/core';
 
-import type { ApiError, Company, UpdateCompanyRequest } from '@/shared/models';
+import type { ApiError, Company, CompanyConfig, UpdateCompanyConfigRequest, UpdateCompanyRequest } from '@/shared/models';
 import { SessionService } from '@/shared/core/auth';
 import { CompanyService } from '@/shared/services/company.service';
+import { CompanyConfigService } from '@/shared/services/company-config.service';
 import { LoggerService } from '@/shared/services/logger.service';
 import { firstError } from '@/shared/utils/form-utils';
 import { SiteHeader } from '@/shared/components/site-header/site-header';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCardComponent } from '@/shared/components/card';
 import {
+  ZardFormDescriptionComponent,
   ZardFormControlComponent,
   ZardFormFieldComponent,
   ZardFormLabelComponent,
   ZardFormMessageComponent,
 } from '@/shared/components/form';
 import { ZardInputDirective } from '@/shared/components/input';
+import { ZardSwitchComponent } from '@/shared/components/switch';
+import { ZardTooltipImports } from '@/shared/components/tooltip';
 
 interface CompanyProfileModel {
   name: string;
@@ -29,6 +32,16 @@ interface CompanyProfileModel {
   stateRegistration: string;
   address: string;
   email: string;
+}
+
+interface RecognitionConfigModel {
+  anprConfidenceThreshold: number;
+  anprMatchTimeoutSeconds: number;
+  anprConfirmationReads: number;
+  anprStaleAfterSeconds: number;
+  anprAutoRegisterCooldownSeconds: number;
+  anprAutoRegister: boolean;
+  anprSaveUnrecognizedPhotos: boolean;
 }
 
 @Component({
@@ -40,11 +53,14 @@ interface CompanyProfileModel {
     NgIcon,
     ZardButtonComponent,
     ZardCardComponent,
+    ZardFormDescriptionComponent,
     ZardFormControlComponent,
     ZardFormFieldComponent,
     ZardFormLabelComponent,
     ZardFormMessageComponent,
     ZardInputDirective,
+    ZardSwitchComponent,
+    ZardTooltipImports,
   ],
   template: `
     <app-site-header />
@@ -52,7 +68,7 @@ interface CompanyProfileModel {
     <main class="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8">
       <div class="flex flex-col gap-1">
         <h1 class="text-lg font-semibold">Minha empresa</h1>
-        <p class="text-sm text-muted-foreground">Visualize e edite os dados da sua empresa.</p>
+        <p class="text-sm text-muted-foreground">Visualize e edite os dados e configurações da sua empresa.</p>
       </div>
 
       @if (loading()) {
@@ -62,36 +78,92 @@ interface CompanyProfileModel {
       } @else if (empresa()) {
         <z-card>
           @if (!editing()) {
-            <div class="flex flex-col gap-4 p-6">
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-muted-foreground">Nome fantasia</span>
-                <span class="text-sm text-foreground">{{ empresa()!.name }}</span>
-              </div>
+            <div class="flex flex-col gap-6 p-6">
+              <!-- Dados da empresa -->
+              <div class="flex flex-col gap-4">
+                <h2 class="text-sm font-semibold text-foreground">Dados da empresa</h2>
 
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-muted-foreground">Razão social</span>
-                <span class="text-sm text-foreground">{{ empresa()!.companyName }}</span>
-              </div>
-
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div class="flex flex-col gap-1">
-                  <span class="text-xs font-medium text-muted-foreground">CNPJ</span>
-                  <span class="text-sm text-foreground">{{ empresa()!.cnpj }}</span>
+                  <span class="text-xs font-medium text-muted-foreground">Nome fantasia</span>
+                  <span class="text-sm text-foreground">{{ empresa()!.name }}</span>
                 </div>
+
                 <div class="flex flex-col gap-1">
-                  <span class="text-xs font-medium text-muted-foreground">Inscrição estadual</span>
-                  <span class="text-sm text-foreground">{{ empresa()!.stateRegistration }}</span>
+                  <span class="text-xs font-medium text-muted-foreground">Razão social</span>
+                  <span class="text-sm text-foreground">{{ empresa()!.companyName }}</span>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-medium text-muted-foreground">CNPJ</span>
+                    <span class="text-sm text-foreground">{{ empresa()!.cnpj }}</span>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-medium text-muted-foreground">Inscrição estadual</span>
+                    <span class="text-sm text-foreground">{{ empresa()!.stateRegistration }}</span>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <span class="text-xs font-medium text-muted-foreground">Endereço</span>
+                  <span class="text-sm text-foreground">{{ empresa()!.address }}</span>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <span class="text-xs font-medium text-muted-foreground">E-mail</span>
+                  <span class="text-sm text-foreground">{{ empresa()!.email }}</span>
                 </div>
               </div>
 
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-muted-foreground">Endereço</span>
-                <span class="text-sm text-foreground">{{ empresa()!.address }}</span>
-              </div>
+              <hr class="border-border" />
 
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-muted-foreground">E-mail</span>
-                <span class="text-sm text-foreground">{{ empresa()!.email }}</span>
+              <!-- Reconhecimento -->
+              <div class="flex flex-col gap-4">
+                <h2 class="text-sm font-semibold text-foreground">Reconhecimento de placas (ANPR)</h2>
+
+                @if (loadingConfig()) {
+                  <div class="py-6 text-center text-sm text-muted-foreground">Carregando configurações...</div>
+                } @else if (config()) {
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="flex flex-col gap-1">
+                      <span class="text-xs font-medium text-muted-foreground">Threshold de confiança</span>
+                      <span class="text-sm text-foreground">{{ config()!.anprConfidenceThreshold }}</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-xs font-medium text-muted-foreground">Timeout de match (s)</span>
+                      <span class="text-sm text-foreground">{{ config()!.anprMatchTimeoutSeconds }}</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-xs font-medium text-muted-foreground">Leituras para confirmação</span>
+                      <span class="text-sm text-foreground">{{ config()!.anprConfirmationReads }}</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-xs font-medium text-muted-foreground">Stale after (s)</span>
+                      <span class="text-sm text-foreground">{{ config()!.anprStaleAfterSeconds }}</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-xs font-medium text-muted-foreground">Cooldown auto-register (s)</span>
+                      <span class="text-sm text-foreground">{{ config()!.anprAutoRegisterCooldownSeconds }}</span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-foreground">Registro automático:</span>
+                      <span class="text-sm font-medium" [class]="config()!.anprAutoRegister ? 'text-success-foreground' : 'text-muted-foreground'">
+                        {{ config()!.anprAutoRegister ? 'Ativado' : 'Desativado' }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-foreground">Salvar fotos não reconhecidas:</span>
+                      <span class="text-sm font-medium" [class]="config()!.anprSaveUnrecognizedPhotos ? 'text-success-foreground' : 'text-muted-foreground'">
+                        {{ config()!.anprSaveUnrecognizedPhotos ? 'Ativado' : 'Desativado' }}
+                      </span>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="py-6 text-center text-sm text-muted-foreground">Configurações não encontradas.</div>
+                }
               </div>
 
               <div class="flex items-center justify-end pt-2">
@@ -102,123 +174,283 @@ interface CompanyProfileModel {
               </div>
             </div>
           } @else {
-            <form [formRoot]="profileForm" class="flex flex-col gap-4 p-6" novalidate>
-              <z-form-field>
-                <z-form-label [zRequired]="true" for="company-name">Nome fantasia</z-form-label>
-                <z-form-control>
-                  <input
-                    z-input
-                    id="company-name"
-                    type="text"
-                    [formField]="profileForm.name"
-                    autocomplete="off"
-                    placeholder="Ex.: Logística Sul"
-                    [attr.aria-invalid]="profileForm.name().invalid() && profileForm.name().touched()"
-                    [attr.aria-describedby]="profileForm.name().errors().length ? 'company-name-error' : null"
-                  />
-                </z-form-control>
-                @if (profileForm.name().invalid() && profileForm.name().touched()) {
-                  <z-form-message id="company-name-error" [zError]="true">{{ getError(profileForm.name()) }}</z-form-message>
-                }
-              </z-form-field>
+            <form [formRoot]="profileForm" class="flex flex-col gap-6 p-6" novalidate>
+              <!-- Dados da empresa -->
+              <div class="flex flex-col gap-4">
+                <h2 class="text-sm font-semibold text-foreground">Dados da empresa</h2>
 
-              <z-form-field>
-                <z-form-label [zRequired]="true" for="company-company-name">Razão social</z-form-label>
-                <z-form-control>
-                  <input
-                    z-input
-                    id="company-company-name"
-                    type="text"
-                    [formField]="profileForm.companyName"
-                    autocomplete="off"
-                    placeholder="Ex.: Logística Sul LTDA"
-                    [attr.aria-invalid]="profileForm.companyName().invalid() && profileForm.companyName().touched()"
-                    [attr.aria-describedby]="profileForm.companyName().errors().length ? 'company-company-name-error' : null"
-                  />
-                </z-form-control>
-                @if (profileForm.companyName().invalid() && profileForm.companyName().touched()) {
-                  <z-form-message id="company-company-name-error" [zError]="true">{{ getError(profileForm.companyName()) }}</z-form-message>
-                }
-              </z-form-field>
-
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <z-form-field>
-                  <z-form-label [zRequired]="true" for="company-cnpj">CNPJ</z-form-label>
+                  <z-form-label [zRequired]="true" for="company-name">Nome fantasia</z-form-label>
                   <z-form-control>
                     <input
                       z-input
-                      id="company-cnpj"
+                      id="company-name"
                       type="text"
-                      [formField]="profileForm.cnpj"
+                      [formField]="profileForm.name"
                       autocomplete="off"
-                      placeholder="00.000.000/0000-00"
-                      [attr.aria-invalid]="profileForm.cnpj().invalid() && profileForm.cnpj().touched()"
-                      [attr.aria-describedby]="profileForm.cnpj().errors().length ? 'company-cnpj-error' : null"
+                      placeholder="Ex.: Logística Sul"
+                      [attr.aria-invalid]="profileForm.name().invalid() && profileForm.name().touched()"
+                      [attr.aria-describedby]="profileForm.name().errors().length ? 'company-name-error' : null"
                     />
                   </z-form-control>
-                  @if (profileForm.cnpj().invalid() && profileForm.cnpj().touched()) {
-                    <z-form-message id="company-cnpj-error" [zError]="true">{{ getError(profileForm.cnpj()) }}</z-form-message>
+                  @if (profileForm.name().invalid() && profileForm.name().touched()) {
+                    <z-form-message id="company-name-error" [zError]="true">{{ getError(profileForm.name()) }}</z-form-message>
                   }
                 </z-form-field>
 
                 <z-form-field>
-                  <z-form-label [zRequired]="true" for="company-state-registration">Inscrição estadual</z-form-label>
+                  <z-form-label [zRequired]="true" for="company-company-name">Razão social</z-form-label>
                   <z-form-control>
                     <input
                       z-input
-                      id="company-state-registration"
+                      id="company-company-name"
                       type="text"
-                      [formField]="profileForm.stateRegistration"
+                      [formField]="profileForm.companyName"
                       autocomplete="off"
-                      placeholder="000.000.000"
-                      [attr.aria-invalid]="profileForm.stateRegistration().invalid() && profileForm.stateRegistration().touched()"
-                      [attr.aria-describedby]="profileForm.stateRegistration().errors().length ? 'company-state-registration-error' : null"
+                      placeholder="Ex.: Logística Sul LTDA"
+                      [attr.aria-invalid]="profileForm.companyName().invalid() && profileForm.companyName().touched()"
+                      [attr.aria-describedby]="profileForm.companyName().errors().length ? 'company-company-name-error' : null"
                     />
                   </z-form-control>
-                  @if (profileForm.stateRegistration().invalid() && profileForm.stateRegistration().touched()) {
-                    <z-form-message id="company-state-registration-error" [zError]="true">{{ getError(profileForm.stateRegistration()) }}</z-form-message>
+                  @if (profileForm.companyName().invalid() && profileForm.companyName().touched()) {
+                    <z-form-message id="company-company-name-error" [zError]="true">{{ getError(profileForm.companyName()) }}</z-form-message>
+                  }
+                </z-form-field>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <z-form-field>
+                    <z-form-label [zRequired]="true" for="company-cnpj">CNPJ</z-form-label>
+                    <z-form-control>
+                      <input
+                        z-input
+                        id="company-cnpj"
+                        type="text"
+                        [formField]="profileForm.cnpj"
+                        autocomplete="off"
+                        placeholder="00.000.000/0000-00"
+                        [attr.aria-invalid]="profileForm.cnpj().invalid() && profileForm.cnpj().touched()"
+                        [attr.aria-describedby]="profileForm.cnpj().errors().length ? 'company-cnpj-error' : null"
+                      />
+                    </z-form-control>
+                    @if (profileForm.cnpj().invalid() && profileForm.cnpj().touched()) {
+                      <z-form-message id="company-cnpj-error" [zError]="true">{{ getError(profileForm.cnpj()) }}</z-form-message>
+                    }
+                  </z-form-field>
+
+                  <z-form-field>
+                    <z-form-label [zRequired]="true" for="company-state-registration">Inscrição estadual</z-form-label>
+                    <z-form-control>
+                      <input
+                        z-input
+                        id="company-state-registration"
+                        type="text"
+                        [formField]="profileForm.stateRegistration"
+                        autocomplete="off"
+                        placeholder="000.000.000"
+                        [attr.aria-invalid]="profileForm.stateRegistration().invalid() && profileForm.stateRegistration().touched()"
+                        [attr.aria-describedby]="profileForm.stateRegistration().errors().length ? 'company-state-registration-error' : null"
+                      />
+                    </z-form-control>
+                    @if (profileForm.stateRegistration().invalid() && profileForm.stateRegistration().touched()) {
+                      <z-form-message id="company-state-registration-error" [zError]="true">{{ getError(profileForm.stateRegistration()) }}</z-form-message>
+                    }
+                  </z-form-field>
+                </div>
+
+                <z-form-field>
+                  <z-form-label [zRequired]="true" for="company-address">Endereço</z-form-label>
+                  <z-form-control>
+                    <input
+                      z-input
+                      id="company-address"
+                      type="text"
+                      [formField]="profileForm.address"
+                      autocomplete="off"
+                      placeholder="Rua Principal, 123 - Centro"
+                      [attr.aria-invalid]="profileForm.address().invalid() && profileForm.address().touched()"
+                      [attr.aria-describedby]="profileForm.address().errors().length ? 'company-address-error' : null"
+                    />
+                  </z-form-control>
+                  @if (profileForm.address().invalid() && profileForm.address().touched()) {
+                    <z-form-message id="company-address-error" [zError]="true">{{ getError(profileForm.address()) }}</z-form-message>
+                  }
+                </z-form-field>
+
+                <z-form-field>
+                  <z-form-label [zRequired]="true" for="company-email">E-mail</z-form-label>
+                  <z-form-control>
+                    <input
+                      z-input
+                      id="company-email"
+                      type="email"
+                      [formField]="profileForm.email"
+                      autocomplete="off"
+                      inputmode="email"
+                      placeholder="empresa@email.com"
+                      [attr.aria-invalid]="profileForm.email().invalid() && profileForm.email().touched()"
+                      [attr.aria-describedby]="profileForm.email().errors().length ? 'company-email-error' : null"
+                    />
+                  </z-form-control>
+                  @if (profileForm.email().invalid() && profileForm.email().touched()) {
+                    <z-form-message id="company-email-error" [zError]="true">{{ getError(profileForm.email()) }}</z-form-message>
                   }
                 </z-form-field>
               </div>
 
-              <z-form-field>
-                <z-form-label [zRequired]="true" for="company-address">Endereço</z-form-label>
-                <z-form-control>
-                  <input
-                    z-input
-                    id="company-address"
-                    type="text"
-                    [formField]="profileForm.address"
-                    autocomplete="off"
-                    placeholder="Rua Principal, 123 - Centro"
-                    [attr.aria-invalid]="profileForm.address().invalid() && profileForm.address().touched()"
-                    [attr.aria-describedby]="profileForm.address().errors().length ? 'company-address-error' : null"
-                  />
-                </z-form-control>
-                @if (profileForm.address().invalid() && profileForm.address().touched()) {
-                  <z-form-message id="company-address-error" [zError]="true">{{ getError(profileForm.address()) }}</z-form-message>
-                }
-              </z-form-field>
+              <hr class="border-border" />
 
-              <z-form-field>
-                <z-form-label [zRequired]="true" for="company-email">E-mail</z-form-label>
-                <z-form-control>
-                  <input
-                    z-input
-                    id="company-email"
-                    type="email"
-                    [formField]="profileForm.email"
-                    autocomplete="off"
-                    inputmode="email"
-                    placeholder="empresa@email.com"
-                    [attr.aria-invalid]="profileForm.email().invalid() && profileForm.email().touched()"
-                    [attr.aria-describedby]="profileForm.email().errors().length ? 'company-email-error' : null"
-                  />
-                </z-form-control>
-                @if (profileForm.email().invalid() && profileForm.email().touched()) {
-                  <z-form-message id="company-email-error" [zError]="true">{{ getError(profileForm.email()) }}</z-form-message>
+              <!-- Reconhecimento -->
+              <div class="flex flex-col gap-4">
+                <h2 class="text-sm font-semibold text-foreground">Reconhecimento de placas (ANPR)</h2>
+
+                @if (loadingConfig()) {
+                  <div class="py-6 text-center text-sm text-muted-foreground">Carregando configurações...</div>
+                } @else if (config()) {
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <z-form-field>
+                      <z-form-label [zRequired]="true" for="rec-confidence">
+                        Threshold de confiança
+                        <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                          zTooltip="Confiança mínima (0 a 1) que o OCR precisa atingir para aceitar uma leitura."
+                          zTooltipPosition="right" />
+                      </z-form-label>
+                      <z-form-control>
+                        <input
+                          z-input
+                          id="rec-confidence"
+                          type="number"
+                          [zNumeric]="true"
+                          [zMin]="0"
+                          [zMax]="1"
+                          [zStep]="0.05"
+                          [formField]="recognitionForm.anprConfidenceThreshold"
+                          placeholder="0.85"
+                        />
+                      </z-form-control>
+                      <z-form-description>Valor entre 0 e 1. Padrão: 0.85.</z-form-description>
+                      @if (recognitionForm.anprConfidenceThreshold().invalid() && recognitionForm.anprConfidenceThreshold().touched()) {
+                        <z-form-message id="rec-confidence-error" [zError]="true">{{ getError(recognitionForm.anprConfidenceThreshold()) }}</z-form-message>
+                      }
+                    </z-form-field>
+
+                    <z-form-field>
+                      <z-form-label [zRequired]="true" for="rec-match-timeout">
+                        Timeout de match (s)
+                        <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                          zTooltip="Tempo máximo em segundos para correspondência de uma placa detectada."
+                          zTooltipPosition="right" />
+                      </z-form-label>
+                      <z-form-control>
+                        <input
+                          z-input
+                          id="rec-match-timeout"
+                          type="number"
+                          [zNumeric]="true"
+                          [zMin]="1"
+                          [zMax]="60"
+                          [formField]="recognitionForm.anprMatchTimeoutSeconds"
+                          placeholder="5"
+                        />
+                      </z-form-control>
+                      <z-form-description>Tempo para correlacionar leituras. Padrão: 5 s.</z-form-description>
+                    </z-form-field>
+
+                    <z-form-field>
+                      <z-form-label [zRequired]="true" for="rec-confirmation-reads">
+                        Leituras para confirmação
+                        <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                          zTooltip="Número mínimo de leituras consistentes para confirmar o reconhecimento."
+                          zTooltipPosition="right" />
+                      </z-form-label>
+                      <z-form-control>
+                        <input
+                          z-input
+                          id="rec-confirmation-reads"
+                          type="number"
+                          [zNumeric]="true"
+                          [zMin]="1"
+                          [zMax]="10"
+                          [formField]="recognitionForm.anprConfirmationReads"
+                          placeholder="2"
+                        />
+                      </z-form-control>
+                      <z-form-description>Leituras idênticas para confirmar. Padrão: 2.</z-form-description>
+                    </z-form-field>
+
+                    <z-form-field>
+                      <z-form-label [zRequired]="true" for="rec-stale">
+                        Stale after (s)
+                        <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                          zTooltip="Tempo após o qual uma observação parcial é descartada."
+                          zTooltipPosition="left" />
+                      </z-form-label>
+                      <z-form-control>
+                        <input
+                          z-input
+                          id="rec-stale"
+                          type="number"
+                          [zNumeric]="true"
+                          [zMin]="1"
+                          [zMax]="60"
+                          [formField]="recognitionForm.anprStaleAfterSeconds"
+                          placeholder="5"
+                        />
+                      </z-form-control>
+                      <z-form-description>Descarta observação parcial após este tempo. Padrão: 5 s.</z-form-description>
+                    </z-form-field>
+
+                    <z-form-field>
+                      <z-form-label [zRequired]="true" for="rec-cooldown">
+                        Cooldown auto-register (s)
+                        <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                          zTooltip="Intervalo mínimo entre registros automáticos do mesmo veículo."
+                          zTooltipPosition="right" />
+                      </z-form-label>
+                      <z-form-control>
+                        <input
+                          z-input
+                          id="rec-cooldown"
+                          type="number"
+                          [zNumeric]="true"
+                          [zMin]="0"
+                          [zMax]="3600"
+                          [formField]="recognitionForm.anprAutoRegisterCooldownSeconds"
+                          placeholder="30"
+                        />
+                      </z-form-control>
+                      <z-form-description>Previne duplicatas. Padrão: 30 s.</z-form-description>
+                    </z-form-field>
+                  </div>
+
+                  <div class="flex flex-col gap-3">
+                    <z-form-field>
+                      <z-form-control>
+                        <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                          <z-switch [formField]="recognitionForm.anprAutoRegister" />
+                          Registro automático de movimentação
+                        </label>
+                      </z-form-control>
+                      <z-form-description>
+                        Cria movimentos automaticamente ao detectar placas confirmadas pelas câmeras.
+                      </z-form-description>
+                    </z-form-field>
+
+                    <z-form-field>
+                      <z-form-control>
+                        <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                          <z-switch [formField]="recognitionForm.anprSaveUnrecognizedPhotos" />
+                          Salvar fotos de placas não reconhecidas
+                        </label>
+                      </z-form-control>
+                      <z-form-description>
+                        Salva foto capturada para validação visual pelo operador.
+                      </z-form-description>
+                    </z-form-field>
+                  </div>
+                } @else {
+                  <div class="py-6 text-center text-sm text-muted-foreground">Configurações não encontradas.</div>
                 }
-              </z-form-field>
+              </div>
 
               <div class="flex items-center justify-end gap-2 pt-2">
                 <button z-button zType="ghost" zSize="default" type="button" (click)="cancelar()">
@@ -249,13 +481,16 @@ interface CompanyProfileModel {
 export class CompanyProfile {
   private readonly session = inject(SessionService);
   private readonly companyService = inject(CompanyService);
+  private readonly configService = inject(CompanyConfigService);
   private readonly logger = inject(LoggerService).create('CompanyProfile');
-  private readonly router = inject(Router);
 
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly editing = signal(false);
   protected readonly empresa = signal<Company | null>(null);
+
+  protected readonly loadingConfig = signal(true);
+  protected readonly config = signal<CompanyConfig | null>(null);
 
   private readonly model = signal<CompanyProfileModel>({
     name: '',
@@ -264,6 +499,16 @@ export class CompanyProfile {
     stateRegistration: '',
     address: '',
     email: '',
+  });
+
+  private readonly recognitionModel = signal<RecognitionConfigModel>({
+    anprConfidenceThreshold: 0.85,
+    anprMatchTimeoutSeconds: 5,
+    anprConfirmationReads: 2,
+    anprStaleAfterSeconds: 5,
+    anprAutoRegisterCooldownSeconds: 30,
+    anprAutoRegister: false,
+    anprSaveUnrecognizedPhotos: true,
   });
 
   protected readonly profileForm = form(
@@ -284,31 +529,56 @@ export class CompanyProfile {
           const empresa = this.empresa();
           if (!empresa) return;
 
-          const model = this.model();
-          const payload: UpdateCompanyRequest = {
-            name: model.name,
-            companyName: model.companyName,
-            cnpj: model.cnpj,
-            stateRegistration: model.stateRegistration,
-            address: model.address,
-            email: model.email,
+          const companyPayload: UpdateCompanyRequest = {
+            name: this.model().name,
+            companyName: this.model().companyName,
+            cnpj: this.model().cnpj,
+            stateRegistration: this.model().stateRegistration,
+            address: this.model().address,
+            email: this.model().email,
           };
 
+          const configPayload = this.buildConfigPayload();
+
           try {
-            const saved = await firstValueFrom(this.companyService.update(empresa.id, payload));
-            this.empresa.set(saved);
+            const promises: Promise<unknown>[] = [
+              firstValueFrom(this.companyService.update(empresa.id, companyPayload)),
+            ];
+
+            if (configPayload) {
+              promises.push(firstValueFrom(this.configService.update(empresa.id, configPayload)));
+            }
+
+            const results = await Promise.all(promises);
+            this.empresa.set(results[0] as Company);
+
+            if (configPayload && results[1]) {
+              this.config.set(results[1] as CompanyConfig);
+            }
+
             this.editing.set(false);
-            this.logger.info('Empresa atualizada', { id: saved.id });
-            toast.success('Empresa atualizada com sucesso.');
+            this.logger.info('Empresa e configurações atualizadas', { companyId: empresa.id });
+            toast.success('Salvo com sucesso.');
           } catch (error) {
-            this.logger.error('Falha ao atualizar empresa', error);
-            const message = (error as ApiError).message || 'Falha ao atualizar empresa.';
+            this.logger.error('Falha ao salvar', error);
+            const message = (error as ApiError).message || 'Falha ao salvar.';
             toast.error(message);
           } finally {
             this.submitting.set(false);
           }
         },
       },
+    },
+  );
+
+  protected readonly recognitionForm = form(
+    this.recognitionModel,
+    (fields) => {
+      required(fields.anprConfidenceThreshold, { message: 'Informe o threshold de confiança.' });
+      required(fields.anprMatchTimeoutSeconds, { message: 'Informe o timeout de match.' });
+      required(fields.anprConfirmationReads, { message: 'Informe as leituras para confirmação.' });
+      required(fields.anprStaleAfterSeconds, { message: 'Informe o stale after.' });
+      required(fields.anprAutoRegisterCooldownSeconds, { message: 'Informe o cooldown.' });
     },
   );
 
@@ -324,6 +594,7 @@ export class CompanyProfile {
 
   protected editar(): void {
     const empresa = this.empresa();
+    const cfg = this.config();
     if (!empresa) return;
 
     this.model.set({
@@ -334,6 +605,19 @@ export class CompanyProfile {
       address: empresa.address,
       email: empresa.email,
     });
+
+    if (cfg) {
+      this.recognitionModel.set({
+        anprConfidenceThreshold: cfg.anprConfidenceThreshold,
+        anprMatchTimeoutSeconds: cfg.anprMatchTimeoutSeconds,
+        anprConfirmationReads: cfg.anprConfirmationReads,
+        anprStaleAfterSeconds: cfg.anprStaleAfterSeconds,
+        anprAutoRegisterCooldownSeconds: cfg.anprAutoRegisterCooldownSeconds,
+        anprAutoRegister: cfg.anprAutoRegister,
+        anprSaveUnrecognizedPhotos: cfg.anprSaveUnrecognizedPhotos,
+      });
+    }
+
     this.editing.set(true);
   }
 
@@ -341,22 +625,47 @@ export class CompanyProfile {
     this.editing.set(false);
   }
 
+  private buildConfigPayload(): UpdateCompanyConfigRequest | null {
+    const current = this.config();
+    if (!current) return null;
+
+    const m = this.recognitionModel();
+    const payload: UpdateCompanyConfigRequest = {};
+
+    if (m.anprConfidenceThreshold !== current.anprConfidenceThreshold) payload.anprConfidenceThreshold = m.anprConfidenceThreshold;
+    if (m.anprMatchTimeoutSeconds !== current.anprMatchTimeoutSeconds) payload.anprMatchTimeoutSeconds = m.anprMatchTimeoutSeconds;
+    if (m.anprConfirmationReads !== current.anprConfirmationReads) payload.anprConfirmationReads = m.anprConfirmationReads;
+    if (m.anprStaleAfterSeconds !== current.anprStaleAfterSeconds) payload.anprStaleAfterSeconds = m.anprStaleAfterSeconds;
+    if (m.anprAutoRegisterCooldownSeconds !== current.anprAutoRegisterCooldownSeconds) payload.anprAutoRegisterCooldownSeconds = m.anprAutoRegisterCooldownSeconds;
+    if (m.anprAutoRegister !== current.anprAutoRegister) payload.anprAutoRegister = m.anprAutoRegister;
+    if (m.anprSaveUnrecognizedPhotos !== current.anprSaveUnrecognizedPhotos) payload.anprSaveUnrecognizedPhotos = m.anprSaveUnrecognizedPhotos;
+
+    return Object.keys(payload).length > 0 ? payload : null;
+  }
+
   private async carregar(): Promise<void> {
     const usuario = this.session.usuario();
     if (!usuario || !usuario.companyId) {
       this.loading.set(false);
+      this.loadingConfig.set(false);
       return;
     }
 
     this.loading.set(true);
+    this.loadingConfig.set(true);
     try {
-      const company = await firstValueFrom(this.companyService.getById(usuario.companyId));
+      const [company, config] = await Promise.all([
+        firstValueFrom(this.companyService.getById(usuario.companyId)),
+        firstValueFrom(this.configService.get(usuario.companyId)),
+      ]);
       this.empresa.set(company);
+      this.config.set(config);
     } catch (error) {
-      this.logger.error('Falha ao carregar empresa', error);
+      this.logger.error('Falha ao carregar dados', error);
       toast.error('Falha ao carregar dados da empresa.');
     } finally {
       this.loading.set(false);
+      this.loadingConfig.set(false);
     }
   }
 }
