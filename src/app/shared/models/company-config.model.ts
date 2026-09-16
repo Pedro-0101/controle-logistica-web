@@ -22,6 +22,13 @@ export interface CompanyConfig {
   anprSaveUnrecognizedPhotos: boolean;
   anprAutoRegisterCooldownSeconds: number;
 
+  // ANPR — modo de reconhecimento / API externa
+  anprRecognitionMode: 'local' | 'verified' | 'external';
+  anprExternalProvider: 'google_vision';
+  anprExternalMinConfidence: number;
+  anprExternalTimeoutMs: number;
+  anprExternalFallbackToLocal: boolean;
+
   // Movimentação
   movementAutoCloseMinutes: number;
   requireDriverName: boolean;

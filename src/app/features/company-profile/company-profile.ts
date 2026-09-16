@@ -1,4 +1,4 @@
-import { afterNextRender, Component, inject, signal } from '@angular/core';
+import { afterNextRender, Component, computed, inject, signal } from '@angular/core';
 import { FormField, FormRoot, email, form, required } from '@angular/forms/signals';
 import type { FieldState } from '@angular/forms/signals';
 import { firstValueFrom } from 'rxjs';
@@ -22,6 +22,7 @@ import {
   ZardFormMessageComponent,
 } from '@/shared/components/form';
 import { ZardInputDirective } from '@/shared/components/input';
+import { ZardSelectImports } from '@/shared/components/select';
 import { ZardSwitchComponent } from '@/shared/components/switch';
 import { ZardTooltipImports } from '@/shared/components/tooltip';
 
@@ -42,6 +43,11 @@ interface RecognitionConfigModel {
   anprAutoRegisterCooldownSeconds: number;
   anprAutoRegister: boolean;
   anprSaveUnrecognizedPhotos: boolean;
+  anprRecognitionMode: string;
+  anprExternalProvider: string;
+  anprExternalMinConfidence: number;
+  anprExternalTimeoutMs: number;
+  anprExternalFallbackToLocal: boolean;
 }
 
 @Component({
@@ -59,6 +65,7 @@ interface RecognitionConfigModel {
     ZardFormLabelComponent,
     ZardFormMessageComponent,
     ZardInputDirective,
+    ZardSelectImports,
     ZardSwitchComponent,
     ZardTooltipImports,
   ],
@@ -145,6 +152,24 @@ interface RecognitionConfigModel {
                       <span class="text-xs font-medium text-muted-foreground">Cooldown auto-register (s)</span>
                       <span class="text-sm text-foreground">{{ config()!.anprAutoRegisterCooldownSeconds }}</span>
                     </div>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-xs font-medium text-muted-foreground">Modo de reconhecimento</span>
+                      <span class="text-sm text-foreground">{{ recognitionModeLabel(config()!.anprRecognitionMode) }}</span>
+                    </div>
+                    @if (config()!.anprRecognitionMode !== 'local') {
+                      <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-muted-foreground">Provider externo</span>
+                        <span class="text-sm text-foreground">{{ config()!.anprExternalProvider === 'google_vision' ? 'Google Vision' : config()!.anprExternalProvider }}</span>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-muted-foreground">Confiança externa mínima</span>
+                        <span class="text-sm text-foreground">{{ config()!.anprExternalMinConfidence }}</span>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-muted-foreground">Timeout externo (ms)</span>
+                        <span class="text-sm text-foreground">{{ config()!.anprExternalTimeoutMs }}</span>
+                      </div>
+                    }
                   </div>
 
                   <div class="flex flex-col gap-2">
@@ -160,6 +185,14 @@ interface RecognitionConfigModel {
                         {{ config()!.anprSaveUnrecognizedPhotos ? 'Ativado' : 'Desativado' }}
                       </span>
                     </div>
+                    @if (config()!.anprRecognitionMode !== 'local') {
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-foreground">Fallback local:</span>
+                        <span class="text-sm font-medium" [class]="config()!.anprExternalFallbackToLocal ? 'text-success-foreground' : 'text-muted-foreground'">
+                          {{ config()!.anprExternalFallbackToLocal ? 'Ativado' : 'Desativado' }}
+                        </span>
+                      </div>
+                    }
                   </div>
                 } @else {
                   <div class="py-6 text-center text-sm text-muted-foreground">Configurações não encontradas.</div>
@@ -420,7 +453,114 @@ interface RecognitionConfigModel {
                       </z-form-control>
                       <z-form-description>Previne duplicatas. Padrão: 30 s.</z-form-description>
                     </z-form-field>
+
+                    <z-form-field>
+                      <z-form-label [zRequired]="true" for="rec-recognition-mode">
+                        Modo de reconhecimento
+                        <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                          zTooltip="Local usa apenas o OCR local. Verificado consulta uma API externa para validar a leitura local. Externo torna a API externa autoritativa."
+                          zTooltipPosition="right" />
+                      </z-form-label>
+                      <z-form-control>
+                        <z-select [formField]="recognitionForm.anprRecognitionMode" zPlaceholder="Selecione..." id="rec-recognition-mode">
+                          <z-select-item zValue="local">Local (somente OCR local)</z-select-item>
+                          <z-select-item zValue="verified">Verificado (local + API externa)</z-select-item>
+                          <z-select-item zValue="external">Externo (API externa)</z-select-item>
+                        </z-select>
+                      </z-form-control>
+                      <z-form-description>Padrão: Local.</z-form-description>
+                      @if (recognitionForm.anprRecognitionMode().invalid() && recognitionForm.anprRecognitionMode().touched()) {
+                        <z-form-message id="rec-recognition-mode-error" [zError]="true">{{ getError(recognitionForm.anprRecognitionMode()) }}</z-form-message>
+                      }
+                    </z-form-field>
                   </div>
+
+                  @if (usaApiExterna()) {
+                    <div class="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                      <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">API externa de reconhecimento</h4>
+
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <z-form-field>
+                          <z-form-label [zRequired]="true" for="rec-external-provider">
+                            Provider
+                            <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                              zTooltip="Serviço externo usado para reconhecer a placa. As credenciais são configuradas no servidor."
+                              zTooltipPosition="right" />
+                          </z-form-label>
+                          <z-form-control>
+                            <z-select [formField]="recognitionForm.anprExternalProvider" zPlaceholder="Selecione..." id="rec-external-provider">
+                              <z-select-item zValue="google_vision">Google Vision</z-select-item>
+                            </z-select>
+                          </z-form-control>
+                          <z-form-description>Padrão: Google Vision.</z-form-description>
+                        </z-form-field>
+
+                        <z-form-field>
+                          <z-form-label [zRequired]="true" for="rec-external-confidence">
+                            Confiança mínima
+                            <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                              zTooltip="Confiança mínima (0 a 1) para aceitar a placa retornada pela API externa."
+                              zTooltipPosition="right" />
+                          </z-form-label>
+                          <z-form-control>
+                            <input
+                              z-input
+                              id="rec-external-confidence"
+                              type="number"
+                              [zNumeric]="true"
+                              [zMin]="0"
+                              [zMax]="1"
+                              [zStep]="0.05"
+                              [formField]="recognitionForm.anprExternalMinConfidence"
+                              placeholder="0.7"
+                            />
+                          </z-form-control>
+                          <z-form-description>Valor entre 0 e 1. Padrão: 0.7.</z-form-description>
+                          @if (recognitionForm.anprExternalMinConfidence().invalid() && recognitionForm.anprExternalMinConfidence().touched()) {
+                            <z-form-message id="rec-external-confidence-error" [zError]="true">{{ getError(recognitionForm.anprExternalMinConfidence()) }}</z-form-message>
+                          }
+                        </z-form-field>
+
+                        <z-form-field>
+                          <z-form-label [zRequired]="true" for="rec-external-timeout">
+                            Timeout (ms)
+                            <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                              zTooltip="Tempo máximo em milissegundos aguardando a resposta da API externa."
+                              zTooltipPosition="left" />
+                          </z-form-label>
+                          <z-form-control>
+                            <input
+                              z-input
+                              id="rec-external-timeout"
+                              type="number"
+                              [zNumeric]="true"
+                              [zMin]="100"
+                              [zMax]="60000"
+                              [zStep]="500"
+                              [formField]="recognitionForm.anprExternalTimeoutMs"
+                              placeholder="8000"
+                            />
+                          </z-form-control>
+                          <z-form-description>Padrão: 8000 ms.</z-form-description>
+                          @if (recognitionForm.anprExternalTimeoutMs().invalid() && recognitionForm.anprExternalTimeoutMs().touched()) {
+                            <z-form-message id="rec-external-timeout-error" [zError]="true">{{ getError(recognitionForm.anprExternalTimeoutMs()) }}</z-form-message>
+                          }
+                        </z-form-field>
+                      </div>
+
+                      <z-form-field>
+                        <z-form-control>
+                          <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                            <z-switch [formField]="recognitionForm.anprExternalFallbackToLocal" />
+                            Usar leitura local como fallback
+                          </label>
+                        </z-form-control>
+                        <z-form-description>
+                          Quando a API externa não retornar uma placa válida, usa o resultado do OCR local.
+                        </z-form-description>
+                      </z-form-field>
+                    </div>
+                  }
 
                   <div class="flex flex-col gap-3">
                     <z-form-field>
@@ -509,7 +649,14 @@ export class CompanyProfile {
     anprAutoRegisterCooldownSeconds: 30,
     anprAutoRegister: false,
     anprSaveUnrecognizedPhotos: true,
+    anprRecognitionMode: 'local',
+    anprExternalProvider: 'google_vision',
+    anprExternalMinConfidence: 0.7,
+    anprExternalTimeoutMs: 8000,
+    anprExternalFallbackToLocal: true,
   });
+
+  protected readonly usaApiExterna = computed(() => this.recognitionModel().anprRecognitionMode !== 'local');
 
   protected readonly profileForm = form(
     this.model,
@@ -579,6 +726,10 @@ export class CompanyProfile {
       required(fields.anprConfirmationReads, { message: 'Informe as leituras para confirmação.' });
       required(fields.anprStaleAfterSeconds, { message: 'Informe o stale after.' });
       required(fields.anprAutoRegisterCooldownSeconds, { message: 'Informe o cooldown.' });
+      required(fields.anprRecognitionMode, { message: 'Selecione o modo de reconhecimento.' });
+      required(fields.anprExternalProvider, { message: 'Selecione o provider externo.' });
+      required(fields.anprExternalMinConfidence, { message: 'Informe a confiança mínima externa.' });
+      required(fields.anprExternalTimeoutMs, { message: 'Informe o timeout externo.' });
     },
   );
 
@@ -590,6 +741,17 @@ export class CompanyProfile {
 
   protected getError<V>(field: FieldState<V, string>): string {
     return firstError(field);
+  }
+
+  protected recognitionModeLabel(mode: string): string {
+    switch (mode) {
+      case 'verified':
+        return 'Verificado (local + API externa)';
+      case 'external':
+        return 'Externo (API externa)';
+      default:
+        return 'Local (somente OCR local)';
+    }
   }
 
   protected editar(): void {
@@ -615,6 +777,11 @@ export class CompanyProfile {
         anprAutoRegisterCooldownSeconds: Number(cfg.anprAutoRegisterCooldownSeconds),
         anprAutoRegister: cfg.anprAutoRegister,
         anprSaveUnrecognizedPhotos: cfg.anprSaveUnrecognizedPhotos,
+        anprRecognitionMode: cfg.anprRecognitionMode,
+        anprExternalProvider: cfg.anprExternalProvider,
+        anprExternalMinConfidence: Number(cfg.anprExternalMinConfidence),
+        anprExternalTimeoutMs: Number(cfg.anprExternalTimeoutMs),
+        anprExternalFallbackToLocal: cfg.anprExternalFallbackToLocal,
       });
     }
 
@@ -639,6 +806,11 @@ export class CompanyProfile {
     if (m.anprAutoRegisterCooldownSeconds !== current.anprAutoRegisterCooldownSeconds) payload.anprAutoRegisterCooldownSeconds = m.anprAutoRegisterCooldownSeconds;
     if (m.anprAutoRegister !== current.anprAutoRegister) payload.anprAutoRegister = m.anprAutoRegister;
     if (m.anprSaveUnrecognizedPhotos !== current.anprSaveUnrecognizedPhotos) payload.anprSaveUnrecognizedPhotos = m.anprSaveUnrecognizedPhotos;
+    if (m.anprRecognitionMode !== current.anprRecognitionMode) payload.anprRecognitionMode = m.anprRecognitionMode as 'local' | 'verified' | 'external';
+    if (m.anprExternalProvider !== current.anprExternalProvider) payload.anprExternalProvider = m.anprExternalProvider as 'google_vision';
+    if (m.anprExternalMinConfidence !== current.anprExternalMinConfidence) payload.anprExternalMinConfidence = m.anprExternalMinConfidence;
+    if (m.anprExternalTimeoutMs !== current.anprExternalTimeoutMs) payload.anprExternalTimeoutMs = m.anprExternalTimeoutMs;
+    if (m.anprExternalFallbackToLocal !== current.anprExternalFallbackToLocal) payload.anprExternalFallbackToLocal = m.anprExternalFallbackToLocal;
 
     return Object.keys(payload).length > 0 ? payload : null;
   }

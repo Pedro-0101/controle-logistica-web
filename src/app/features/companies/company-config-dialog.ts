@@ -1,4 +1,4 @@
-import { afterNextRender, Component, inject, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, inject, signal, viewChild } from '@angular/core';
 import type { ElementRef } from '@angular/core';
 import { FormField, FormRoot, form, required } from '@angular/forms/signals';
 import type { FieldState } from '@angular/forms/signals';
@@ -38,6 +38,11 @@ interface ConfigFormModel {
   anprAutoRegister: boolean;
   anprSaveUnrecognizedPhotos: boolean;
   anprAutoRegisterCooldownSeconds: number;
+  anprRecognitionMode: string;
+  anprExternalProvider: string;
+  anprExternalMinConfidence: number;
+  anprExternalTimeoutMs: number;
+  anprExternalFallbackToLocal: boolean;
   movementAutoCloseMinutes: number;
   requireDriverName: boolean;
   requirePurpose: boolean;
@@ -332,7 +337,115 @@ export interface ConfigDialogData {
             </z-form-control>
             <z-form-description>Previne duplicatas do mesmo veículo. Padrão: 30 s.</z-form-description>
           </z-form-field>
+
+          <z-form-field>
+            <z-form-label [zRequired]="true" for="cfg-recognition-mode">
+              Modo de reconhecimento
+              <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                zTooltip="Local usa apenas o OCR local. Verificado consulta uma API externa para validar a leitura local (a placa externa vence quando válida). Externo torna a API externa autoritativa."
+                zTooltipPosition="right" />
+            </z-form-label>
+            <z-form-control>
+              <z-select [formField]="configForm.anprRecognitionMode" zPlaceholder="Selecione..." id="cfg-recognition-mode">
+                <z-select-item zValue="local">Local (somente OCR local)</z-select-item>
+                <z-select-item zValue="verified">Verificado (local + API externa)</z-select-item>
+                <z-select-item zValue="external">Externo (API externa)</z-select-item>
+              </z-select>
+            </z-form-control>
+            <z-form-description>Padrão: Local.</z-form-description>
+            @if (configForm.anprRecognitionMode().invalid() && configForm.anprRecognitionMode().touched()) {
+              <z-form-message id="cfg-recognition-mode-error" [zError]="true">{{ getError(configForm.anprRecognitionMode()) }}</z-form-message>
+            }
+          </z-form-field>
         </div>
+
+        @if (usaApiExterna()) {
+          <div class="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+            <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">API externa de reconhecimento</h4>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <z-form-field>
+                <z-form-label [zRequired]="true" for="cfg-external-provider">
+                  Provider
+                  <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                    zTooltip="Serviço externo usado para reconhecer a placa. As credenciais são configuradas no servidor via variáveis de ambiente."
+                    zTooltipPosition="right" />
+                </z-form-label>
+                <z-form-control>
+                  <z-select [formField]="configForm.anprExternalProvider" zPlaceholder="Selecione..." id="cfg-external-provider">
+                    <z-select-item zValue="google_vision">Google Vision</z-select-item>
+                  </z-select>
+                </z-form-control>
+                <z-form-description>Padrão: Google Vision.</z-form-description>
+              </z-form-field>
+
+              <z-form-field>
+                <z-form-label [zRequired]="true" for="cfg-external-confidence">
+                  Confiança mínima
+                  <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                    zTooltip="Confiança mínima (0 a 1) para aceitar a placa retornada pela API externa."
+                    zTooltipPosition="right" />
+                </z-form-label>
+                <z-form-control>
+                  <input
+                    z-input
+                    id="cfg-external-confidence"
+                    type="number"
+                    [zNumeric]="true"
+                    [zMin]="0"
+                    [zMax]="1"
+                    [zStep]="0.05"
+                    [formField]="configForm.anprExternalMinConfidence"
+                    placeholder="0.7"
+                  />
+                </z-form-control>
+                <z-form-description>Valor entre 0 e 1. Padrão: 0.7.</z-form-description>
+                @if (configForm.anprExternalMinConfidence().invalid() && configForm.anprExternalMinConfidence().touched()) {
+                  <z-form-message id="cfg-external-confidence-error" [zError]="true">{{ getError(configForm.anprExternalMinConfidence()) }}</z-form-message>
+                }
+              </z-form-field>
+
+              <z-form-field>
+                <z-form-label [zRequired]="true" for="cfg-external-timeout">
+                  Timeout (ms)
+                  <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                    zTooltip="Tempo máximo em milissegundos aguardando a resposta da API externa."
+                    zTooltipPosition="left" />
+                </z-form-label>
+                <z-form-control>
+                  <input
+                    z-input
+                    id="cfg-external-timeout"
+                    type="number"
+                    [zNumeric]="true"
+                    [zMin]="100"
+                    [zMax]="60000"
+                    [zStep]="500"
+                    [formField]="configForm.anprExternalTimeoutMs"
+                    placeholder="8000"
+                  />
+                </z-form-control>
+                <z-form-description>Padrão: 8000 ms.</z-form-description>
+                @if (configForm.anprExternalTimeoutMs().invalid() && configForm.anprExternalTimeoutMs().touched()) {
+                  <z-form-message id="cfg-external-timeout-error" [zError]="true">{{ getError(configForm.anprExternalTimeoutMs()) }}</z-form-message>
+                }
+              </z-form-field>
+            </div>
+
+            <z-form-field>
+              <z-form-control>
+                <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                  <z-switch [formField]="configForm.anprExternalFallbackToLocal" />
+                  Usar leitura local como fallback
+                </label>
+              </z-form-control>
+              <z-form-description>
+                Quando a API externa não retornar uma placa válida, usa o resultado do OCR local. Desative para
+                descartar a leitura nesses casos.
+              </z-form-description>
+            </z-form-field>
+          </div>
+        }
 
         <div class="flex flex-col gap-3 mt-1">
           <z-form-field>
@@ -464,10 +577,17 @@ export class CompanyConfigDialog {
     anprAutoRegister: this.data.config.anprAutoRegister,
     anprSaveUnrecognizedPhotos: this.data.config.anprSaveUnrecognizedPhotos,
     anprAutoRegisterCooldownSeconds: Number(this.data.config.anprAutoRegisterCooldownSeconds),
+    anprRecognitionMode: this.data.config.anprRecognitionMode,
+    anprExternalProvider: this.data.config.anprExternalProvider,
+    anprExternalMinConfidence: Number(this.data.config.anprExternalMinConfidence),
+    anprExternalTimeoutMs: Number(this.data.config.anprExternalTimeoutMs),
+    anprExternalFallbackToLocal: this.data.config.anprExternalFallbackToLocal,
     movementAutoCloseMinutes: Number(this.data.config.movementAutoCloseMinutes),
     requireDriverName: this.data.config.requireDriverName,
     requirePurpose: this.data.config.requirePurpose,
   });
+
+  protected readonly usaApiExterna = computed(() => this.model().anprRecognitionMode !== 'local');
 
   protected readonly configForm = form(
     this.model,
@@ -483,6 +603,10 @@ export class CompanyConfigDialog {
       required(fields.anprConfirmationReads, { message: 'Informe as leituras para confirmação.' });
       required(fields.anprStaleAfterSeconds, { message: 'Informe o stale after.' });
       required(fields.anprAutoRegisterCooldownSeconds, { message: 'Informe o cooldown.' });
+      required(fields.anprRecognitionMode, { message: 'Selecione o modo de reconhecimento.' });
+      required(fields.anprExternalProvider, { message: 'Selecione o provider externo.' });
+      required(fields.anprExternalMinConfidence, { message: 'Informe a confiança mínima externa.' });
+      required(fields.anprExternalTimeoutMs, { message: 'Informe o timeout externo.' });
       required(fields.movementAutoCloseMinutes, { message: 'Informe o auto-close.' });
     },
     {
@@ -542,6 +666,11 @@ export class CompanyConfigDialog {
     if (m.anprAutoRegister !== original.anprAutoRegister) payload.anprAutoRegister = m.anprAutoRegister;
     if (m.anprSaveUnrecognizedPhotos !== original.anprSaveUnrecognizedPhotos) payload.anprSaveUnrecognizedPhotos = m.anprSaveUnrecognizedPhotos;
     if (m.anprAutoRegisterCooldownSeconds !== original.anprAutoRegisterCooldownSeconds) payload.anprAutoRegisterCooldownSeconds = m.anprAutoRegisterCooldownSeconds;
+    if (m.anprRecognitionMode !== original.anprRecognitionMode) payload.anprRecognitionMode = m.anprRecognitionMode as 'local' | 'verified' | 'external';
+    if (m.anprExternalProvider !== original.anprExternalProvider) payload.anprExternalProvider = m.anprExternalProvider as 'google_vision';
+    if (m.anprExternalMinConfidence !== original.anprExternalMinConfidence) payload.anprExternalMinConfidence = m.anprExternalMinConfidence;
+    if (m.anprExternalTimeoutMs !== original.anprExternalTimeoutMs) payload.anprExternalTimeoutMs = m.anprExternalTimeoutMs;
+    if (m.anprExternalFallbackToLocal !== original.anprExternalFallbackToLocal) payload.anprExternalFallbackToLocal = m.anprExternalFallbackToLocal;
     if (m.movementAutoCloseMinutes !== original.movementAutoCloseMinutes) payload.movementAutoCloseMinutes = m.movementAutoCloseMinutes;
     if (m.requireDriverName !== original.requireDriverName) payload.requireDriverName = m.requireDriverName;
     if (m.requirePurpose !== original.requirePurpose) payload.requirePurpose = m.requirePurpose;
