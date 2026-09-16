@@ -193,6 +193,26 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
                   </div>
                 </ng-template>
               </div>
+
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="anprMenu">
+                  Integrações
+                </button>
+                <ng-template #anprMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/anpr/uso-externo"
+                      routerLinkActive
+                      #linkUsoExterno="routerLinkActive"
+                      [zActive]="linkUsoExterno.isActive"
+                    >
+                      <ng-icon name="lucideActivity" aria-hidden="true" />
+                      Uso de APIs externas
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
             }
           </div>
         </z-navigation-menu>

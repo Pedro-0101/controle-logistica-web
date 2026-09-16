@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard } from '@/shared/core/auth';
+import { authGuard, rootGuard } from '@/shared/core/auth';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -71,6 +71,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/company-profile/company-profile').then((m) => m.CompanyProfile),
     title: 'Minha empresa',
+  },
+  {
+    path: 'anpr/uso-externo',
+    canActivate: [authGuard, rootGuard],
+    loadComponent: () => import('./features/anpr/external-usage').then((m) => m.ExternalUsage),
+    title: 'Uso de APIs externas',
   },
   { path: '**', redirectTo: 'home' },
 ];
