@@ -1,7 +1,12 @@
 import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import type { AnprRecognition } from '@/shared/models';
+import type {
+  AnprRecognition,
+  ExternalInteractionFilters,
+  ExternalInteractionUsage,
+} from '@/shared/models';
+import { toExternalInteractionHttpQuery } from '@/shared/models';
 import { ApiClientService } from './api-client.service';
 
 /**
@@ -18,5 +23,16 @@ export class AnprService {
    */
   recognizeImage(imagemBase64: string): Observable<AnprRecognition> {
     return this.api.post<AnprRecognition>('/anpr/reconhecer-imagem', { imagemBase64 });
+  }
+
+  /**
+   * Uso consolidado das APIs externas em **todas as empresas**, com paginação,
+   * totais do período e agregado por empresa. Restrito ao administrador global
+   * (`companyId = null`); usuários vinculados a uma empresa recebem `403`.
+   */
+  externalUsage(filters?: ExternalInteractionFilters): Observable<ExternalInteractionUsage> {
+    return this.api.get<ExternalInteractionUsage>('/anpr/external-interactions/usage', {
+      params: toExternalInteractionHttpQuery(filters),
+    });
   }
 }
