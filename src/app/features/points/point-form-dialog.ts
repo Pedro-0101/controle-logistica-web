@@ -45,6 +45,11 @@ interface PointFormModel {
   anprMatchTimeoutSeconds: number | null;
   anprConfirmationReads: number | null;
   anprStaleAfterSeconds: number | null;
+  anprRecognitionMode: string;
+  anprExternalProvider: string;
+  anprExternalMinConfidence: number | null;
+  anprExternalTimeoutMs: number | null;
+  anprExternalFallbackToLocal: boolean;
 }
 
 const POINT_TYPE_OPTIONS: { value: PointType; label: string }[] = [
@@ -336,6 +341,90 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                   Tempo para descartar observação não confirmada.
                 </p>
               </z-form-field>
+
+              <z-form-field>
+                <z-form-label for="anpr-recognition-mode">Modo de reconhecimento</z-form-label>
+                <z-form-control>
+                  <select z-input zSize="lg" id="anpr-recognition-mode" [formField]="pointForm.anprRecognitionMode">
+                    <option value="local">Local (somente OCR local)</option>
+                    <option value="verified">Verificado (local + API externa)</option>
+                    <option value="external">Externo (API externa)</option>
+                  </select>
+                </z-form-control>
+                <p class="text-xs text-muted-foreground mt-1">
+                  Como a leitura local é validada. Padrão: Local.
+                </p>
+              </z-form-field>
+
+              @if (usaApiExterna()) {
+                <div class="flex flex-col gap-4 rounded-lg border border-dashed p-4 bg-muted/20">
+                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">API externa de reconhecimento</h4>
+
+                  <z-form-field>
+                    <z-form-label for="anpr-external-provider">Provider</z-form-label>
+                    <z-form-control>
+                      <select z-input zSize="lg" id="anpr-external-provider" [formField]="pointForm.anprExternalProvider">
+                        <option value="google_vision">Google Vision</option>
+                      </select>
+                    </z-form-control>
+                    <p class="text-xs text-muted-foreground mt-1">Padrão: Google Vision.</p>
+                  </z-form-field>
+
+                  <div class="grid grid-cols-2 gap-5">
+                    <z-form-field>
+                      <z-form-label for="anpr-external-confidence">Confiança mínima externa</z-form-label>
+                      <z-form-control>
+                        <input
+                          z-input
+                          zSize="lg"
+                          id="anpr-external-confidence"
+                          type="number"
+                          [formField]="pointForm.anprExternalMinConfidence"
+                          [zNumeric]="true"
+                          [zMin]="0"
+                          [zMax]="1"
+                          [zStep]="0.05"
+                          placeholder="0.7"
+                        />
+                      </z-form-control>
+                      <p class="text-xs text-muted-foreground mt-1">
+                        Nível mínimo da API externa (0–1). Padrão: 0.7.
+                      </p>
+                    </z-form-field>
+
+                    <z-form-field>
+                      <z-form-label for="anpr-external-timeout">Timeout externo (ms)</z-form-label>
+                      <z-form-control>
+                        <input
+                          z-input
+                          zSize="lg"
+                          id="anpr-external-timeout"
+                          type="number"
+                          [formField]="pointForm.anprExternalTimeoutMs"
+                          [zNumeric]="true"
+                          [zMin]="100"
+                          placeholder="8000"
+                        />
+                      </z-form-control>
+                      <p class="text-xs text-muted-foreground mt-1">
+                        Tempo máximo aguardando a API externa. Padrão: 8000 ms.
+                      </p>
+                    </z-form-field>
+                  </div>
+
+                  <z-form-field>
+                    <z-form-control>
+                      <label class="flex items-center gap-2 text-sm font-medium leading-none">
+                        <z-checkbox [formField]="pointForm.anprExternalFallbackToLocal" />
+                        Usar leitura local como fallback
+                      </label>
+                    </z-form-control>
+                    <p class="text-xs text-muted-foreground mt-1 ml-6">
+                      Usa o OCR local quando a API externa não retornar placa válida.
+                    </p>
+                  </z-form-field>
+                </div>
+              }
             }
 
             @if (anprInherit()) {
@@ -420,6 +509,11 @@ export class PointFormDialog implements OnInit {
     anprMatchTimeoutSeconds: this.data?.anprMatchTimeoutSeconds != null ? Number(this.data.anprMatchTimeoutSeconds) : null,
     anprConfirmationReads: this.data?.anprConfirmationReads != null ? Number(this.data.anprConfirmationReads) : null,
     anprStaleAfterSeconds: this.data?.anprStaleAfterSeconds != null ? Number(this.data.anprStaleAfterSeconds) : null,
+    anprRecognitionMode: this.data?.anprRecognitionMode ?? 'local',
+    anprExternalProvider: this.data?.anprExternalProvider ?? 'google_vision',
+    anprExternalMinConfidence: this.data?.anprExternalMinConfidence != null ? Number(this.data.anprExternalMinConfidence) : null,
+    anprExternalTimeoutMs: this.data?.anprExternalTimeoutMs != null ? Number(this.data.anprExternalTimeoutMs) : null,
+    anprExternalFallbackToLocal: this.data?.anprExternalFallbackToLocal ?? true,
   });
 
   protected readonly pointForm = form(
@@ -454,6 +548,8 @@ export class PointFormDialog implements OnInit {
       },
     },
   );
+
+  protected readonly usaApiExterna = computed(() => this.model().anprRecognitionMode !== 'local');
 
   constructor() {
     afterNextRender(() => {
@@ -498,6 +594,11 @@ export class PointFormDialog implements OnInit {
       anprMatchTimeoutSeconds: inherit ? null : model.anprMatchTimeoutSeconds,
       anprConfirmationReads: inherit ? null : model.anprConfirmationReads,
       anprStaleAfterSeconds: inherit ? null : model.anprStaleAfterSeconds,
+      anprRecognitionMode: inherit ? null : model.anprRecognitionMode,
+      anprExternalProvider: inherit ? null : model.anprExternalProvider,
+      anprExternalMinConfidence: inherit ? null : model.anprExternalMinConfidence,
+      anprExternalTimeoutMs: inherit ? null : model.anprExternalTimeoutMs,
+      anprExternalFallbackToLocal: inherit ? null : model.anprExternalFallbackToLocal,
     };
   }
 

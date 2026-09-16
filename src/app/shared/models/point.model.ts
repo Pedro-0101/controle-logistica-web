@@ -19,6 +19,16 @@ export interface PointAnprConfig {
   anprConfirmationReads: number | null;
   /** Tempo em segundos para considerar observação expirada. */
   anprStaleAfterSeconds: number | null;
+  /** Modo de reconhecimento: `local`, `verified` ou `external` (usado quando inheritCompanyConfig = false). */
+  anprRecognitionMode: string | null;
+  /** Provider externo de reconhecimento de placas (usado quando inheritCompanyConfig = false). */
+  anprExternalProvider: string | null;
+  /** Confiança mínima (0–1) para aceitar a placa da API externa (usado quando inheritCompanyConfig = false). */
+  anprExternalMinConfidence: number | null;
+  /** Timeout em milissegundos da chamada à API externa (usado quando inheritCompanyConfig = false). */
+  anprExternalTimeoutMs: number | null;
+  /** Usar leitura local quando a API externa não retornar placa válida (usado quando inheritCompanyConfig = false). */
+  anprExternalFallbackToLocal: boolean | null;
 }
 
 /** Ponto de controle, conforme retornado por `/point`. */
