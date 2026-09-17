@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom, take } from 'rxjs';
 import { NgIcon } from '@ng-icons/core';
 
@@ -25,6 +26,7 @@ import { PendingReviewDialog } from './pending-review-dialog';
 @Component({
   selector: 'app-pending-review',
   imports: [
+    RouterLink,
     SiteHeader,
     EmptyState,
     LoadingSpinner,
@@ -46,17 +48,24 @@ import { PendingReviewDialog } from './pending-review-dialog';
           </p>
         </div>
 
-        <button
-          z-button
-          zType="outline"
-          zSize="sm"
-          type="button"
-          [zLoading]="loading()"
-          (click)="carregar()"
-        >
-          <ng-icon name="lucideRefreshCw" aria-hidden="true" />
-          Atualizar
-        </button>
+        <div class="flex items-center gap-3">
+          <a z-button zType="ghost" zSize="sm" routerLink="/">
+            <ng-icon name="lucideArrowLeft" aria-hidden="true" />
+            Voltar
+          </a>
+
+          <button
+            z-button
+            zType="outline"
+            zSize="sm"
+            type="button"
+            [zLoading]="loading()"
+            (click)="carregar()"
+          >
+            <ng-icon name="lucideRefreshCw" aria-hidden="true" />
+            Atualizar
+          </button>
+        </div>
       </div>
 
       @if (loading()) {
