@@ -20,6 +20,8 @@ import {
   ZardFormMessageComponent,
 } from '@/shared/components/form';
 import { ZardInputDirective } from '@/shared/components/input';
+import { ZardSegmentedComponent } from '@/shared/components/segmented';
+import type { SegmentedOption } from '@/shared/components/segmented';
 import { ZardSelectImports } from '@/shared/components/select';
 import { ZardSwitchComponent } from '@/shared/components/switch';
 import { ZardTooltipImports } from '@/shared/components/tooltip';
@@ -70,14 +72,25 @@ export interface ConfigDialogData {
     ZardFormLabelComponent,
     ZardFormMessageComponent,
     ZardInputDirective,
+    ZardSegmentedComponent,
     ZardSelectImports,
     ZardSwitchComponent,
     ZardTooltipImports,
   ],
   template: `
-    <form [formRoot]="configForm" class="flex flex-col gap-5" novalidate>
-      <!-- Geral -->
-      <section class="flex flex-col gap-3">
+    <form [formRoot]="configForm" class="flex max-h-[70vh] flex-col gap-4" novalidate>
+      <z-segmented
+        class="w-full shrink-0"
+        [zOptions]="steps"
+        zDefaultValue="geral"
+        zAriaLabel="Etapas de configuração da empresa"
+        (zChange)="step.set($event)"
+      />
+
+      <div class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
+        @if (step() === 'geral') {
+        <!-- Geral -->
+        <section class="flex flex-col gap-3">
         <h3 class="text-sm font-semibold text-foreground">Geral</h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <z-form-field>
@@ -130,10 +143,10 @@ export interface ConfigDialogData {
           </z-form-field>
         </div>
       </section>
+        }
 
-      <hr class="border-border" />
-
-      <!-- Câmeras -->
+        @if (step() === 'cameras') {
+        <!-- Câmeras -->
       <section class="flex flex-col gap-3">
         <h3 class="text-sm font-semibold text-foreground">Câmeras</h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -221,10 +234,10 @@ export interface ConfigDialogData {
           </z-form-field>
         </div>
       </section>
+        }
 
-      <hr class="border-border" />
-
-      <!-- ANPR -->
+        @if (step() === 'anpr') {
+        <!-- ANPR -->
       <section class="flex flex-col gap-3">
         <h3 class="text-sm font-semibold text-foreground">ANPR — Reconhecimento de placas</h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -555,10 +568,10 @@ export interface ConfigDialogData {
           </z-form-field>
         </div>
       </section>
+        }
 
-      <hr class="border-border" />
-
-      <!-- Movimentação -->
+        @if (step() === 'movimentacao') {
+        <!-- Movimentação -->
       <section class="flex flex-col gap-3">
         <h3 class="text-sm font-semibold text-foreground">Movimentação</h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -613,6 +626,8 @@ export interface ConfigDialogData {
           </z-form-field>
         </div>
       </section>
+        }
+      </div>
 
       <!-- Ações -->
       <div class="flex items-center justify-end gap-2 pt-2">
@@ -638,6 +653,15 @@ export class CompanyConfigDialog {
   private readonly logger = inject(LoggerService).create('CompanyConfigDialog');
 
   protected readonly submitting = signal(false);
+
+  protected readonly step = signal('geral');
+
+  protected readonly steps: SegmentedOption[] = [
+    { value: 'geral', label: 'Geral' },
+    { value: 'cameras', label: 'Câmeras' },
+    { value: 'anpr', label: 'ANPR' },
+    { value: 'movimentacao', label: 'Movimentação' },
+  ];
 
   private readonly timezoneInput = viewChild<ElementRef<HTMLInputElement>>('timezoneInput');
 
