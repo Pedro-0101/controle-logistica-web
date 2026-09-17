@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 
 export const tableVariants = cva(
-  'w-full caption-bottom text-sm [&_tr]:border-b [&_tr]:border-border [&_tbody_tr:last-child]:border-0 [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-muted/50 [&_th]:text-left [&_th]:align-middle [&_th]:font-medium [&_th]:text-muted-foreground [&_td]:align-middle [&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_caption]:mt-4 [&_caption]:text-sm [&_caption]:text-muted-foreground',
+  'w-full caption-bottom text-sm [&_tr]:border-b [&_tr]:border-border [&_tbody_tr:last-child]:border-0 [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-muted/50 [&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4 [&_caption]:mt-4 [&_caption]:text-sm [&_caption]:text-muted-foreground',
   {
     variants: {
       zType: {
