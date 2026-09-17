@@ -159,7 +159,7 @@ export class Companies implements OnInit {
         zTitle: `Configurações — ${empresa.name}`,
         zDescription: 'Ajuste as configurações operacionais da empresa.',
         zHideFooter: true,
-        zWidth: '32rem',
+        zWidth: '44rem',
         zMaskClosable: false,
       });
 
