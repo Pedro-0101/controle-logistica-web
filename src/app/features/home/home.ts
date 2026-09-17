@@ -135,7 +135,6 @@ const REFRESH_INTERVAL_OPTIONS = new Set(['0', '5', '10', '30', '60']);
               <th z-table-head>Motorista</th>
               <th z-table-head>Motivo</th>
               <th z-table-head>Origem</th>
-              <th z-table-head class="text-right">Ações</th>
             </tr>
           </thead>
           <tbody z-table-body>
@@ -176,40 +175,10 @@ const REFRESH_INTERVAL_OPTIONS = new Set(['0', '5', '10', '30', '60']);
                     <span class="text-muted-foreground">Manual</span>
                   }
                 </td>
-                <td z-table-cell class="text-right">
-                  @if (m.status === 'pending_review') {
-                    <a
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      routerLink="/movimentos/pendentes"
-                      [attr.aria-label]="
-                        'Revisar movimentação da placa ' +
-                        (m.vehicle?.plate ?? m.recognizedPlate ?? 'desconhecida')
-                      "
-                    >
-                      <ng-icon name="lucideSearch" aria-hidden="true" />
-                    </a>
-                  } @else {
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      type="button"
-                      (click)="abrirEditar(m)"
-                      [attr.aria-label]="
-                        'Editar movimentação da placa ' +
-                        (m.vehicle?.plate ?? m.recognizedPlate ?? 'desconhecida')
-                      "
-                    >
-                      <ng-icon name="lucidePencil" aria-hidden="true" />
-                    </button>
-                  }
-                </td>
               </tr>
             } @empty {
               <tr z-table-row>
-                <td z-table-cell colspan="11" class="py-10 text-center text-muted-foreground">
+                <td z-table-cell colspan="10" class="py-10 text-center text-muted-foreground">
                   Nenhuma movimentação encontrada.
                 </td>
               </tr>
