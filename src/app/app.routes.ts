@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard, rootGuard } from '@/shared/core/auth';
+import { authGuard, companyGuard, rootGuard } from '@/shared/core/auth';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -11,63 +11,63 @@ export const routes: Routes = [
   },
   {
     path: 'home',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () => import('./features/home/home').then((m) => m.Home),
     title: 'Home',
   },
   {
     path: 'movimentos/pendentes',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () => import('./features/movements/pending-review').then((m) => m.PendingReview),
     title: 'Revisão de movimentações',
   },
   {
     path: 'usuarios',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () => import('./features/users/users').then((m) => m.Users),
     title: 'Gerenciar usuários',
   },
   {
     path: 'unidades',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () =>
       import('./features/admin-unities/admin-unities').then((m) => m.AdminUnities),
     title: 'Gerenciar unidades',
   },
   {
     path: 'empresas',
-    canActivate: [authGuard],
+    canActivate: [authGuard, rootGuard],
     loadComponent: () => import('./features/companies/companies').then((m) => m.Companies),
     title: 'Gerenciar empresas',
   },
   {
     path: 'pontos',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () => import('./features/points/points').then((m) => m.Points),
     title: 'Gerenciar pontos',
   },
   {
     path: 'veiculos',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () => import('./features/vehicles/vehicles').then((m) => m.Vehicles),
     title: 'Gerenciar veículos',
   },
   {
     path: 'cameras',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () => import('./features/cameras/cameras').then((m) => m.Cameras),
     title: 'Gerenciar câmeras',
   },
   {
     path: 'cameras/monitoramento',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () =>
       import('./features/cameras/cameras-monitoring').then((m) => m.CamerasMonitoring),
     title: 'Monitoramento de câmeras',
   },
   {
     path: 'minha-empresa',
-    canActivate: [authGuard],
+    canActivate: [authGuard, companyGuard],
     loadComponent: () =>
       import('./features/company-profile/company-profile').then((m) => m.CompanyProfile),
     title: 'Minha empresa',

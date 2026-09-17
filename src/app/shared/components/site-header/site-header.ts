@@ -16,164 +16,173 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
   template: `
     <header class="flex h-14 items-center gap-6 border-b border-border bg-background px-4 sm:px-6">
       <a
-        routerLink="/home"
+        [routerLink]="rotaInicial()"
         class="flex items-center gap-2 font-semibold tracking-tight text-foreground"
-        aria-label="Ir para a home"
+        aria-label="Ir para a tela principal"
       >
         <ng-icon name="lucideHome" aria-hidden="true" class="size-5" />
         {{ brandName() }}
       </a>
 
       <nav class="flex items-center gap-1" aria-label="Navegação principal">
-        <a z-button zType="ghost" zSize="sm" routerLink="/home" routerLinkActive="bg-accent"
-          >Início</a
-        >
+        @if (!isRoot()) {
+          <a
+            z-button
+            zType="ghost"
+            zSize="sm"
+            routerLink="/home"
+            routerLinkActive="bg-accent"
+            >Início</a
+          >
 
-        <z-navigation-menu>
-          <div z-navigation-menu-list>
-            <div z-navigation-menu-item>
-              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="usuariosMenu">
-                Usuários
-              </button>
-              <ng-template #usuariosMenu>
-                <div z-navigation-menu-content class="w-56">
-                  <a
-                    z-navigation-menu-link
-                    routerLink="/usuarios"
-                    routerLinkActive
-                    #linkUsuarios="routerLinkActive"
-                    [zActive]="linkUsuarios.isActive"
-                  >
-                    <ng-icon name="lucideUsers" aria-hidden="true" />
-                    Gerenciar usuários
-                  </a>
-                </div>
-              </ng-template>
+          <z-navigation-menu>
+            <div z-navigation-menu-list>
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="usuariosMenu">
+                  Usuários
+                </button>
+                <ng-template #usuariosMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/usuarios"
+                      routerLinkActive
+                      #linkUsuarios="routerLinkActive"
+                      [zActive]="linkUsuarios.isActive"
+                    >
+                      <ng-icon name="lucideUsers" aria-hidden="true" />
+                      Gerenciar usuários
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="unidadesMenu">
+                  Unidades
+                </button>
+                <ng-template #unidadesMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/unidades"
+                      routerLinkActive
+                      #linkUnidades="routerLinkActive"
+                      [zActive]="linkUnidades.isActive"
+                    >
+                      <ng-icon name="lucideBuilding2" aria-hidden="true" />
+                      Gerenciar unidades
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="pontosMenu">
+                  Pontos
+                </button>
+                <ng-template #pontosMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/pontos"
+                      routerLinkActive
+                      #linkPontos="routerLinkActive"
+                      [zActive]="linkPontos.isActive"
+                    >
+                      <ng-icon name="lucideMapPin" aria-hidden="true" />
+                      Gerenciar pontos
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="veiculosMenu">
+                  Veículos
+                </button>
+                <ng-template #veiculosMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/veiculos"
+                      routerLinkActive
+                      #linkVeiculos="routerLinkActive"
+                      [zActive]="linkVeiculos.isActive"
+                    >
+                      <ng-icon name="lucideCar" aria-hidden="true" />
+                      Gerenciar veículos
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="movimentosMenu">
+                  Movimentações
+                </button>
+                <ng-template #movimentosMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/movimentos/pendentes"
+                      routerLinkActive
+                      #linkPendentes="routerLinkActive"
+                      [zActive]="linkPendentes.isActive"
+                    >
+                      <ng-icon name="lucideInbox" aria-hidden="true" />
+                      Revisão pendente
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div z-navigation-menu-item>
+                <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="camerasMenu">
+                  Câmeras
+                </button>
+                <ng-template #camerasMenu>
+                  <div z-navigation-menu-content class="w-56">
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/cameras/monitoramento"
+                      routerLinkActive
+                      #linkMonitoramento="routerLinkActive"
+                      [zActive]="linkMonitoramento.isActive"
+                    >
+                      <ng-icon name="lucideMonitorPlay" aria-hidden="true" />
+                      Monitoramento
+                    </a>
+                    <a
+                      z-navigation-menu-link
+                      routerLink="/cameras"
+                      routerLinkActive
+                      #linkCameras="routerLinkActive"
+                      [zActive]="linkCameras.isActive"
+                    >
+                      <ng-icon name="lucideCamera" aria-hidden="true" />
+                      Gerenciar câmeras
+                    </a>
+                  </div>
+                </ng-template>
+              </div>
+
+              @if (isAdmin()) {
+                <a
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  routerLink="/minha-empresa"
+                  routerLinkActive="bg-accent"
+                >
+                  Minha Empresa
+                </a>
+              }
             </div>
-
-            <div z-navigation-menu-item>
-              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="unidadesMenu">
-                Unidades
-              </button>
-              <ng-template #unidadesMenu>
-                <div z-navigation-menu-content class="w-56">
-                  <a
-                    z-navigation-menu-link
-                    routerLink="/unidades"
-                    routerLinkActive
-                    #linkUnidades="routerLinkActive"
-                    [zActive]="linkUnidades.isActive"
-                  >
-                    <ng-icon name="lucideBuilding2" aria-hidden="true" />
-                    Gerenciar unidades
-                  </a>
-                </div>
-              </ng-template>
-            </div>
-
-            <div z-navigation-menu-item>
-              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="pontosMenu">
-                Pontos
-              </button>
-              <ng-template #pontosMenu>
-                <div z-navigation-menu-content class="w-56">
-                  <a
-                    z-navigation-menu-link
-                    routerLink="/pontos"
-                    routerLinkActive
-                    #linkPontos="routerLinkActive"
-                    [zActive]="linkPontos.isActive"
-                  >
-                    <ng-icon name="lucideMapPin" aria-hidden="true" />
-                    Gerenciar pontos
-                  </a>
-                </div>
-              </ng-template>
-            </div>
-
-            <div z-navigation-menu-item>
-              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="veiculosMenu">
-                Veículos
-              </button>
-              <ng-template #veiculosMenu>
-                <div z-navigation-menu-content class="w-56">
-                  <a
-                    z-navigation-menu-link
-                    routerLink="/veiculos"
-                    routerLinkActive
-                    #linkVeiculos="routerLinkActive"
-                    [zActive]="linkVeiculos.isActive"
-                  >
-                    <ng-icon name="lucideCar" aria-hidden="true" />
-                    Gerenciar veículos
-                  </a>
-                </div>
-              </ng-template>
-            </div>
-
-            <div z-navigation-menu-item>
-              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="movimentosMenu">
-                Movimentações
-              </button>
-              <ng-template #movimentosMenu>
-                <div z-navigation-menu-content class="w-56">
-                  <a
-                    z-navigation-menu-link
-                    routerLink="/movimentos/pendentes"
-                    routerLinkActive
-                    #linkPendentes="routerLinkActive"
-                    [zActive]="linkPendentes.isActive"
-                  >
-                    <ng-icon name="lucideInbox" aria-hidden="true" />
-                    Revisão pendente
-                  </a>
-                </div>
-              </ng-template>
-            </div>
-
-            <div z-navigation-menu-item>
-              <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="camerasMenu">
-                Câmeras
-              </button>
-              <ng-template #camerasMenu>
-                <div z-navigation-menu-content class="w-56">
-                  <a
-                    z-navigation-menu-link
-                    routerLink="/cameras/monitoramento"
-                    routerLinkActive
-                    #linkMonitoramento="routerLinkActive"
-                    [zActive]="linkMonitoramento.isActive"
-                  >
-                    <ng-icon name="lucideMonitorPlay" aria-hidden="true" />
-                    Monitoramento
-                  </a>
-                  <a
-                    z-navigation-menu-link
-                    routerLink="/cameras"
-                    routerLinkActive
-                    #linkCameras="routerLinkActive"
-                    [zActive]="linkCameras.isActive"
-                  >
-                    <ng-icon name="lucideCamera" aria-hidden="true" />
-                    Gerenciar câmeras
-                  </a>
-                </div>
-              </ng-template>
-            </div>
-
-            @if (isAdmin()) {
-              <a
-                z-button
-                zType="ghost"
-                zSize="sm"
-                routerLink="/minha-empresa"
-                routerLinkActive="bg-accent"
-              >
-                Minha Empresa
-              </a>
-            }
-
-            @if (isRoot()) {
+          </z-navigation-menu>
+        } @else {
+          <z-navigation-menu>
+            <div z-navigation-menu-list>
               <div z-navigation-menu-item>
                 <button z-navigation-menu-trigger [zNavigationMenuTriggerFor]="empresasMenu">
                   Empresas
@@ -213,9 +222,9 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
                   </div>
                 </ng-template>
               </div>
-            }
-          </div>
-        </z-navigation-menu>
+            </div>
+          </z-navigation-menu>
+        }
       </nav>
 
       <div class="ml-auto flex items-center gap-1">
@@ -284,6 +293,7 @@ export class SiteHeader {
 
   protected readonly isRoot = computed(() => this.session.usuario()?.companyId === null);
   protected readonly isAdmin = computed(() => this.session.usuario()?.role === 'admin');
+  protected readonly rotaInicial = computed(() => (this.isRoot() ? '/empresas' : '/home'));
   protected readonly brandName = computed(
     () => this.session.usuario()?.company?.companyName ?? 'Controle Logística',
   );
