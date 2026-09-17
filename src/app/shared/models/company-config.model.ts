@@ -1,3 +1,12 @@
+/** Modo de reconhecimento ANPR da empresa/ponto. */
+export type AnprRecognitionMode = 'local' | 'verified' | 'external';
+
+/** Momento em que a API externa de reconhecimento é acionada. */
+export type AnprExternalTrigger = 'after_confirmation' | 'after_single_read';
+
+/** Provider externo de reconhecimento de placas suportado. */
+export type AnprExternalProvider = 'google_vision';
+
 /** Configuração da empresa, conforme retornado por `/company-config/:companyId`. */
 export interface CompanyConfig {
   id: string;
@@ -23,11 +32,15 @@ export interface CompanyConfig {
   anprAutoRegisterCooldownSeconds: number;
 
   // ANPR — modo de reconhecimento / API externa
-  anprRecognitionMode: 'local' | 'verified' | 'external';
-  anprExternalProvider: 'google_vision';
+  anprRecognitionMode: AnprRecognitionMode;
+  anprExternalProvider: AnprExternalProvider;
   anprExternalMinConfidence: number;
   anprExternalTimeoutMs: number;
   anprExternalFallbackToLocal: boolean;
+  anprExternalTrigger: AnprExternalTrigger;
+  anprTrustRegisteredVehicle: boolean;
+  anprRegisterOnFirstRead: boolean;
+  anprFirstReadMinConfidence: number;
 
   // Movimentação
   movementAutoCloseMinutes: number;
@@ -43,5 +56,8 @@ export interface CompanyConfig {
 
 /** Corpo do PATCH /company-config/:companyId (campos parciais). */
 export type UpdateCompanyConfigRequest = Partial<
-  Omit<CompanyConfig, 'id' | 'companyId' | 'createdById' | 'updatedById' | 'createdAt' | 'updatedAt'>
+  Omit<
+    CompanyConfig,
+    'id' | 'companyId' | 'createdById' | 'updatedById' | 'createdAt' | 'updatedAt'
+  >
 >;

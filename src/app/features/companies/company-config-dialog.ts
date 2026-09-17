@@ -43,6 +43,10 @@ interface ConfigFormModel {
   anprExternalMinConfidence: number;
   anprExternalTimeoutMs: number;
   anprExternalFallbackToLocal: boolean;
+  anprExternalTrigger: string;
+  anprTrustRegisteredVehicle: boolean;
+  anprRegisterOnFirstRead: boolean;
+  anprFirstReadMinConfidence: number;
   movementAutoCloseMinutes: number;
   requireDriverName: boolean;
   requirePurpose: boolean;
@@ -363,7 +367,7 @@ export interface ConfigDialogData {
           <div class="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
             <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">API externa de reconhecimento</h4>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <z-form-field>
                 <z-form-label [zRequired]="true" for="cfg-external-provider">
                   Provider
@@ -430,6 +434,22 @@ export interface ConfigDialogData {
                   <z-form-message id="cfg-external-timeout-error" [zError]="true">{{ getError(configForm.anprExternalTimeoutMs()) }}</z-form-message>
                 }
               </z-form-field>
+
+              <z-form-field>
+                <z-form-label [zRequired]="true" for="cfg-external-trigger">
+                  Momento do acionamento
+                  <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                    zTooltip="Após confirmação: só consulta a API externa depois de N leituras consistentes. Na primeira leitura: consulta imediatamente; sem confiança suficiente nenhum movimento é criado."
+                    zTooltipPosition="left" />
+                </z-form-label>
+                <z-form-control>
+                  <z-select [formField]="configForm.anprExternalTrigger" zPlaceholder="Selecione..." id="cfg-external-trigger">
+                    <z-select-item zValue="after_confirmation">Após confirmação das leituras</z-select-item>
+                    <z-select-item zValue="after_single_read">Na primeira leitura</z-select-item>
+                  </z-select>
+                </z-form-control>
+                <z-form-description>Padrão: após confirmação.</z-form-description>
+              </z-form-field>
             </div>
 
             <z-form-field>
@@ -446,6 +466,64 @@ export interface ConfigDialogData {
             </z-form-field>
           </div>
         }
+
+        <div class="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+          <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Atalhos de confirmação de placa</h4>
+
+          <z-form-field>
+            <z-form-control>
+              <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                <z-switch [formField]="configForm.anprTrustRegisteredVehicle" />
+                Confiar em veículo já cadastrado
+              </label>
+            </z-form-control>
+            <z-form-description>
+              Quando ativado, uma placa que corresponde a um veículo cadastrado é confirmada sem consultar a API
+              externa (ainda aguarda as leituras mínimas de confirmação).
+            </z-form-description>
+          </z-form-field>
+
+          <z-form-field>
+            <z-form-control>
+              <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                <z-switch [formField]="configForm.anprRegisterOnFirstRead" />
+                Registrar na primeira leitura
+              </label>
+            </z-form-control>
+            <z-form-description>
+              Quando ativado, se a primeira leitura identificar a placa de um veículo já cadastrado com confiança
+              suficiente, o movimento é registrado imediatamente, sem aguardar as leituras mínimas.
+            </z-form-description>
+          </z-form-field>
+
+          @if (configForm.anprRegisterOnFirstRead().value()) {
+            <z-form-field>
+              <z-form-label [zRequired]="true" for="cfg-first-read-confidence">
+                Confiança mínima da primeira leitura
+                <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                  zTooltip="Confiança mínima (0 a 1) do OCR local para confiar no atalho de placa cadastrada na primeira leitura."
+                  zTooltipPosition="right" />
+              </z-form-label>
+              <z-form-control>
+                <input
+                  z-input
+                  id="cfg-first-read-confidence"
+                  type="number"
+                  [zNumeric]="true"
+                  [zMin]="0"
+                  [zMax]="1"
+                  [zStep]="0.05"
+                  [formField]="configForm.anprFirstReadMinConfidence"
+                  placeholder="0.85"
+                />
+              </z-form-control>
+              <z-form-description>Valor entre 0 e 1. Padrão: 0.85.</z-form-description>
+              @if (configForm.anprFirstReadMinConfidence().invalid() && configForm.anprFirstReadMinConfidence().touched()) {
+                <z-form-message id="cfg-first-read-confidence-error" [zError]="true">{{ getError(configForm.anprFirstReadMinConfidence()) }}</z-form-message>
+              }
+            </z-form-field>
+          }
+        </div>
 
         <div class="flex flex-col gap-3 mt-1">
           <z-form-field>
@@ -582,6 +660,10 @@ export class CompanyConfigDialog {
     anprExternalMinConfidence: Number(this.data.config.anprExternalMinConfidence),
     anprExternalTimeoutMs: Number(this.data.config.anprExternalTimeoutMs),
     anprExternalFallbackToLocal: this.data.config.anprExternalFallbackToLocal,
+    anprExternalTrigger: this.data.config.anprExternalTrigger,
+    anprTrustRegisteredVehicle: this.data.config.anprTrustRegisteredVehicle,
+    anprRegisterOnFirstRead: this.data.config.anprRegisterOnFirstRead,
+    anprFirstReadMinConfidence: Number(this.data.config.anprFirstReadMinConfidence),
     movementAutoCloseMinutes: Number(this.data.config.movementAutoCloseMinutes),
     requireDriverName: this.data.config.requireDriverName,
     requirePurpose: this.data.config.requirePurpose,
@@ -607,6 +689,8 @@ export class CompanyConfigDialog {
       required(fields.anprExternalProvider, { message: 'Selecione o provider externo.' });
       required(fields.anprExternalMinConfidence, { message: 'Informe a confiança mínima externa.' });
       required(fields.anprExternalTimeoutMs, { message: 'Informe o timeout externo.' });
+      required(fields.anprExternalTrigger, { message: 'Selecione o momento do acionamento.' });
+      required(fields.anprFirstReadMinConfidence, { message: 'Informe a confiança mínima da primeira leitura.' });
       required(fields.movementAutoCloseMinutes, { message: 'Informe o auto-close.' });
     },
     {
@@ -671,6 +755,10 @@ export class CompanyConfigDialog {
     if (m.anprExternalMinConfidence !== original.anprExternalMinConfidence) payload.anprExternalMinConfidence = m.anprExternalMinConfidence;
     if (m.anprExternalTimeoutMs !== original.anprExternalTimeoutMs) payload.anprExternalTimeoutMs = m.anprExternalTimeoutMs;
     if (m.anprExternalFallbackToLocal !== original.anprExternalFallbackToLocal) payload.anprExternalFallbackToLocal = m.anprExternalFallbackToLocal;
+    if (m.anprExternalTrigger !== original.anprExternalTrigger) payload.anprExternalTrigger = m.anprExternalTrigger as 'after_confirmation' | 'after_single_read';
+    if (m.anprTrustRegisteredVehicle !== original.anprTrustRegisteredVehicle) payload.anprTrustRegisteredVehicle = m.anprTrustRegisteredVehicle;
+    if (m.anprRegisterOnFirstRead !== original.anprRegisterOnFirstRead) payload.anprRegisterOnFirstRead = m.anprRegisterOnFirstRead;
+    if (m.anprFirstReadMinConfidence !== original.anprFirstReadMinConfidence) payload.anprFirstReadMinConfidence = m.anprFirstReadMinConfidence;
     if (m.movementAutoCloseMinutes !== original.movementAutoCloseMinutes) payload.movementAutoCloseMinutes = m.movementAutoCloseMinutes;
     if (m.requireDriverName !== original.requireDriverName) payload.requireDriverName = m.requireDriverName;
     if (m.requirePurpose !== original.requirePurpose) payload.requirePurpose = m.requirePurpose;

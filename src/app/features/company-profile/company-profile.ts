@@ -48,6 +48,10 @@ interface RecognitionConfigModel {
   anprExternalMinConfidence: number;
   anprExternalTimeoutMs: number;
   anprExternalFallbackToLocal: boolean;
+  anprExternalTrigger: string;
+  anprTrustRegisteredVehicle: boolean;
+  anprRegisterOnFirstRead: boolean;
+  anprFirstReadMinConfidence: number;
 }
 
 @Component({
@@ -169,10 +173,32 @@ interface RecognitionConfigModel {
                         <span class="text-xs font-medium text-muted-foreground">Timeout externo (ms)</span>
                         <span class="text-sm text-foreground">{{ config()!.anprExternalTimeoutMs }}</span>
                       </div>
+                      <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-muted-foreground">Momento do acionamento</span>
+                        <span class="text-sm text-foreground">{{ externalTriggerLabel(config()!.anprExternalTrigger) }}</span>
+                      </div>
                     }
                   </div>
 
                   <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-foreground">Confiar em veículo cadastrado:</span>
+                      <span class="text-sm font-medium" [class]="config()!.anprTrustRegisteredVehicle ? 'text-success-foreground' : 'text-muted-foreground'">
+                        {{ config()!.anprTrustRegisteredVehicle ? 'Ativado' : 'Desativado' }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-foreground">Registrar na primeira leitura:</span>
+                      <span class="text-sm font-medium" [class]="config()!.anprRegisterOnFirstRead ? 'text-success-foreground' : 'text-muted-foreground'">
+                        {{ config()!.anprRegisterOnFirstRead ? 'Ativado' : 'Desativado' }}
+                      </span>
+                    </div>
+                    @if (config()!.anprRegisterOnFirstRead) {
+                      <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-muted-foreground">Confiança mínima da primeira leitura</span>
+                        <span class="text-sm text-foreground">{{ config()!.anprFirstReadMinConfidence }}</span>
+                      </div>
+                    }
                     <div class="flex items-center gap-2">
                       <span class="text-sm text-foreground">Registro automático:</span>
                       <span class="text-sm font-medium" [class]="config()!.anprAutoRegister ? 'text-success-foreground' : 'text-muted-foreground'">
@@ -479,7 +505,7 @@ interface RecognitionConfigModel {
                     <div class="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
                       <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">API externa de reconhecimento</h4>
 
-                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <z-form-field>
                           <z-form-label [zRequired]="true" for="rec-external-provider">
                             Provider
@@ -546,6 +572,22 @@ interface RecognitionConfigModel {
                             <z-form-message id="rec-external-timeout-error" [zError]="true">{{ getError(recognitionForm.anprExternalTimeoutMs()) }}</z-form-message>
                           }
                         </z-form-field>
+
+                        <z-form-field>
+                          <z-form-label [zRequired]="true" for="rec-external-trigger">
+                            Momento do acionamento
+                            <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                              zTooltip="Após confirmação: só consulta a API externa depois de N leituras consistentes. Na primeira leitura: consulta imediatamente."
+                              zTooltipPosition="left" />
+                          </z-form-label>
+                          <z-form-control>
+                            <z-select [formField]="recognitionForm.anprExternalTrigger" zPlaceholder="Selecione..." id="rec-external-trigger">
+                              <z-select-item zValue="after_confirmation">Após confirmação das leituras</z-select-item>
+                              <z-select-item zValue="after_single_read">Na primeira leitura</z-select-item>
+                            </z-select>
+                          </z-form-control>
+                          <z-form-description>Padrão: após confirmação.</z-form-description>
+                        </z-form-field>
                       </div>
 
                       <z-form-field>
@@ -561,6 +603,62 @@ interface RecognitionConfigModel {
                       </z-form-field>
                     </div>
                   }
+
+                  <div class="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                    <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Atalhos de confirmação de placa</h4>
+
+                    <z-form-field>
+                      <z-form-control>
+                        <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                          <z-switch [formField]="recognitionForm.anprTrustRegisteredVehicle" />
+                          Confiar em veículo já cadastrado
+                        </label>
+                      </z-form-control>
+                      <z-form-description>
+                        Uma placa de veículo cadastrado é confirmada sem consultar a API externa.
+                      </z-form-description>
+                    </z-form-field>
+
+                    <z-form-field>
+                      <z-form-control>
+                        <label class="flex items-center gap-3 text-sm font-medium leading-none cursor-pointer">
+                          <z-switch [formField]="recognitionForm.anprRegisterOnFirstRead" />
+                          Registrar na primeira leitura
+                        </label>
+                      </z-form-control>
+                      <z-form-description>
+                        Registra o movimento já na primeira leitura quando a placa pertence a um veículo cadastrado.
+                      </z-form-description>
+                    </z-form-field>
+
+                    @if (recognitionForm.anprRegisterOnFirstRead().value()) {
+                      <z-form-field>
+                        <z-form-label [zRequired]="true" for="rec-first-read-confidence">
+                          Confiança mínima da primeira leitura
+                          <ng-icon name="lucideCircleHelp" class="ml-1 inline-block size-3.5 text-muted-foreground"
+                            zTooltip="Confiança mínima (0 a 1) do OCR local para confiar no atalho de placa cadastrada."
+                            zTooltipPosition="right" />
+                        </z-form-label>
+                        <z-form-control>
+                          <input
+                            z-input
+                            id="rec-first-read-confidence"
+                            type="number"
+                            [zNumeric]="true"
+                            [zMin]="0"
+                            [zMax]="1"
+                            [zStep]="0.05"
+                            [formField]="recognitionForm.anprFirstReadMinConfidence"
+                            placeholder="0.85"
+                          />
+                        </z-form-control>
+                        <z-form-description>Valor entre 0 e 1. Padrão: 0.85.</z-form-description>
+                        @if (recognitionForm.anprFirstReadMinConfidence().invalid() && recognitionForm.anprFirstReadMinConfidence().touched()) {
+                          <z-form-message id="rec-first-read-confidence-error" [zError]="true">{{ getError(recognitionForm.anprFirstReadMinConfidence()) }}</z-form-message>
+                        }
+                      </z-form-field>
+                    }
+                  </div>
 
                   <div class="flex flex-col gap-3">
                     <z-form-field>
@@ -654,6 +752,10 @@ export class CompanyProfile {
     anprExternalMinConfidence: 0.7,
     anprExternalTimeoutMs: 8000,
     anprExternalFallbackToLocal: true,
+    anprExternalTrigger: 'after_confirmation',
+    anprTrustRegisteredVehicle: false,
+    anprRegisterOnFirstRead: false,
+    anprFirstReadMinConfidence: 0.85,
   });
 
   protected readonly usaApiExterna = computed(() => this.recognitionModel().anprRecognitionMode !== 'local');
@@ -730,6 +832,8 @@ export class CompanyProfile {
       required(fields.anprExternalProvider, { message: 'Selecione o provider externo.' });
       required(fields.anprExternalMinConfidence, { message: 'Informe a confiança mínima externa.' });
       required(fields.anprExternalTimeoutMs, { message: 'Informe o timeout externo.' });
+      required(fields.anprExternalTrigger, { message: 'Selecione o momento do acionamento.' });
+      required(fields.anprFirstReadMinConfidence, { message: 'Informe a confiança mínima da primeira leitura.' });
     },
   );
 
@@ -751,6 +855,15 @@ export class CompanyProfile {
         return 'Externo (API externa)';
       default:
         return 'Local (somente OCR local)';
+    }
+  }
+
+  protected externalTriggerLabel(trigger: string): string {
+    switch (trigger) {
+      case 'after_single_read':
+        return 'Na primeira leitura';
+      default:
+        return 'Após confirmação das leituras';
     }
   }
 
@@ -782,6 +895,10 @@ export class CompanyProfile {
         anprExternalMinConfidence: Number(cfg.anprExternalMinConfidence),
         anprExternalTimeoutMs: Number(cfg.anprExternalTimeoutMs),
         anprExternalFallbackToLocal: cfg.anprExternalFallbackToLocal,
+        anprExternalTrigger: cfg.anprExternalTrigger,
+        anprTrustRegisteredVehicle: cfg.anprTrustRegisteredVehicle,
+        anprRegisterOnFirstRead: cfg.anprRegisterOnFirstRead,
+        anprFirstReadMinConfidence: Number(cfg.anprFirstReadMinConfidence),
       });
     }
 
@@ -811,6 +928,10 @@ export class CompanyProfile {
     if (m.anprExternalMinConfidence !== current.anprExternalMinConfidence) payload.anprExternalMinConfidence = m.anprExternalMinConfidence;
     if (m.anprExternalTimeoutMs !== current.anprExternalTimeoutMs) payload.anprExternalTimeoutMs = m.anprExternalTimeoutMs;
     if (m.anprExternalFallbackToLocal !== current.anprExternalFallbackToLocal) payload.anprExternalFallbackToLocal = m.anprExternalFallbackToLocal;
+    if (m.anprExternalTrigger !== current.anprExternalTrigger) payload.anprExternalTrigger = m.anprExternalTrigger as 'after_confirmation' | 'after_single_read';
+    if (m.anprTrustRegisteredVehicle !== current.anprTrustRegisteredVehicle) payload.anprTrustRegisteredVehicle = m.anprTrustRegisteredVehicle;
+    if (m.anprRegisterOnFirstRead !== current.anprRegisterOnFirstRead) payload.anprRegisterOnFirstRead = m.anprRegisterOnFirstRead;
+    if (m.anprFirstReadMinConfidence !== current.anprFirstReadMinConfidence) payload.anprFirstReadMinConfidence = m.anprFirstReadMinConfidence;
 
     return Object.keys(payload).length > 0 ? payload : null;
   }

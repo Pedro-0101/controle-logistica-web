@@ -50,6 +50,10 @@ interface PointFormModel {
   anprExternalMinConfidence: number | null;
   anprExternalTimeoutMs: number | null;
   anprExternalFallbackToLocal: boolean;
+  anprExternalTrigger: string;
+  anprTrustRegisteredVehicle: boolean;
+  anprRegisterOnFirstRead: boolean;
+  anprFirstReadMinConfidence: number | null;
 }
 
 const POINT_TYPE_OPTIONS: { value: PointType; label: string }[] = [
@@ -356,6 +360,57 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                 </p>
               </z-form-field>
 
+              <div class="flex flex-col gap-4 rounded-lg border border-dashed p-4 bg-muted/20">
+                <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Atalhos de confirmação de placa</h4>
+
+                <z-form-field>
+                  <z-form-control>
+                    <label class="flex items-center gap-2 text-sm font-medium leading-none">
+                      <z-checkbox [formField]="pointForm.anprTrustRegisteredVehicle" />
+                      Confiar em veículo já cadastrado
+                    </label>
+                  </z-form-control>
+                  <p class="text-xs text-muted-foreground mt-1 ml-6">
+                    Confirma a placa de um veículo cadastrado sem consultar a API externa.
+                  </p>
+                </z-form-field>
+
+                <z-form-field>
+                  <z-form-control>
+                    <label class="flex items-center gap-2 text-sm font-medium leading-none">
+                      <z-checkbox [formField]="pointForm.anprRegisterOnFirstRead" />
+                      Registrar na primeira leitura
+                    </label>
+                  </z-form-control>
+                  <p class="text-xs text-muted-foreground mt-1 ml-6">
+                    Registra o movimento já na primeira leitura quando a placa é de um veículo cadastrado.
+                  </p>
+                </z-form-field>
+
+                @if (pointForm.anprRegisterOnFirstRead()) {
+                  <z-form-field>
+                    <z-form-label for="anpr-first-read-confidence">Confiança mínima da primeira leitura</z-form-label>
+                    <z-form-control>
+                      <input
+                        z-input
+                        zSize="lg"
+                        id="anpr-first-read-confidence"
+                        type="number"
+                        [formField]="pointForm.anprFirstReadMinConfidence"
+                        [zNumeric]="true"
+                        [zMin]="0"
+                        [zMax]="1"
+                        [zStep]="0.05"
+                        placeholder="0.85"
+                      />
+                    </z-form-control>
+                    <p class="text-xs text-muted-foreground mt-1">
+                      Nível mínimo do OCR (0–1). Padrão: 0.85.
+                    </p>
+                  </z-form-field>
+                }
+              </div>
+
               @if (usaApiExterna()) {
                 <div class="flex flex-col gap-4 rounded-lg border border-dashed p-4 bg-muted/20">
                   <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">API externa de reconhecimento</h4>
@@ -411,6 +466,19 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                       </p>
                     </z-form-field>
                   </div>
+
+                  <z-form-field>
+                    <z-form-label for="anpr-external-trigger">Momento do acionamento</z-form-label>
+                    <z-form-control>
+                      <select z-input zSize="lg" id="anpr-external-trigger" [formField]="pointForm.anprExternalTrigger">
+                        <option value="after_confirmation">Após confirmação das leituras</option>
+                        <option value="after_single_read">Na primeira leitura</option>
+                      </select>
+                    </z-form-control>
+                    <p class="text-xs text-muted-foreground mt-1">
+                      Quando a API externa é consultada. Padrão: após confirmação.
+                    </p>
+                  </z-form-field>
 
                   <z-form-field>
                     <z-form-control>
@@ -514,6 +582,10 @@ export class PointFormDialog implements OnInit {
     anprExternalMinConfidence: this.data?.anprExternalMinConfidence != null ? Number(this.data.anprExternalMinConfidence) : null,
     anprExternalTimeoutMs: this.data?.anprExternalTimeoutMs != null ? Number(this.data.anprExternalTimeoutMs) : null,
     anprExternalFallbackToLocal: this.data?.anprExternalFallbackToLocal ?? true,
+    anprExternalTrigger: this.data?.anprExternalTrigger ?? 'after_confirmation',
+    anprTrustRegisteredVehicle: this.data?.anprTrustRegisteredVehicle ?? false,
+    anprRegisterOnFirstRead: this.data?.anprRegisterOnFirstRead ?? false,
+    anprFirstReadMinConfidence: this.data?.anprFirstReadMinConfidence != null ? Number(this.data.anprFirstReadMinConfidence) : null,
   });
 
   protected readonly pointForm = form(
@@ -594,11 +666,15 @@ export class PointFormDialog implements OnInit {
       anprMatchTimeoutSeconds: inherit ? null : model.anprMatchTimeoutSeconds,
       anprConfirmationReads: inherit ? null : model.anprConfirmationReads,
       anprStaleAfterSeconds: inherit ? null : model.anprStaleAfterSeconds,
-      anprRecognitionMode: inherit ? null : model.anprRecognitionMode,
-      anprExternalProvider: inherit ? null : model.anprExternalProvider,
+      anprRecognitionMode: inherit ? null : (model.anprRecognitionMode as PointAnprConfig['anprRecognitionMode']),
+      anprExternalProvider: inherit ? null : (model.anprExternalProvider as PointAnprConfig['anprExternalProvider']),
       anprExternalMinConfidence: inherit ? null : model.anprExternalMinConfidence,
       anprExternalTimeoutMs: inherit ? null : model.anprExternalTimeoutMs,
       anprExternalFallbackToLocal: inherit ? null : model.anprExternalFallbackToLocal,
+      anprExternalTrigger: inherit ? null : (model.anprExternalTrigger as PointAnprConfig['anprExternalTrigger']),
+      anprTrustRegisteredVehicle: inherit ? null : model.anprTrustRegisteredVehicle,
+      anprRegisterOnFirstRead: inherit ? null : model.anprRegisterOnFirstRead,
+      anprFirstReadMinConfidence: inherit ? null : model.anprFirstReadMinConfidence,
     };
   }
 
