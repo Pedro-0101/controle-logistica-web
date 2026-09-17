@@ -1,4 +1,12 @@
-import { Component, OnDestroy, OnInit, inject, signal, ViewContainerRef } from '@angular/core';
+import {
+  Component,
+  effect,
+  OnDestroy,
+  OnInit,
+  inject,
+  signal,
+  ViewContainerRef,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 import { NgIcon } from '@ng-icons/core';
@@ -12,8 +20,12 @@ import { ZardInputDirective } from '@/shared/components/input';
 import { ZardPaginationComponent } from '@/shared/components/pagination/pagination.component';
 import { ZardDialogService } from '@/shared/components/dialog';
 import { MovementService } from '@/shared/services/movement.service';
+import { LocalStorageService } from '@/shared/services/local-storage.service';
 import type { MovementListItem, MovementFilters } from '@/shared/models';
 import { MovementEditDialog } from '@/features/movements/movement-edit-dialog';
+
+const REFRESH_INTERVAL_KEY = 'home:refresh-interval';
+const REFRESH_INTERVAL_OPTIONS = new Set(['0', '5', '10', '30', '60']);
 
 @Component({
   selector: 'app-home',
@@ -221,13 +233,14 @@ import { MovementEditDialog } from '@/features/movements/movement-edit-dialog';
 })
 export class Home implements OnInit, OnDestroy {
   private readonly movementService = inject(MovementService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly dialog = inject(ZardDialogService);
   private readonly vcr = inject(ViewContainerRef);
 
   readonly movimentos = signal<MovementListItem[]>([]);
   readonly loading = signal(false);
   readonly pendentes = signal(0);
-  readonly refreshInterval = signal<string>('0');
+  readonly refreshInterval = signal<string>(this.intervaloSalvo());
   readonly paginaAtual = signal(1);
   readonly limit = signal(20);
   readonly totalRegistros = signal(0);
@@ -239,6 +252,14 @@ export class Home implements OnInit, OnDestroy {
 
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private searchDebounceId: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const segundos = Number(this.refreshInterval());
+      this.localStorage.set(REFRESH_INTERVAL_KEY, segundos);
+      this.configurarIntervalo(segundos);
+    });
+  }
 
   ngOnInit(): void {
     this.carregar();
@@ -279,7 +300,6 @@ export class Home implements OnInit, OnDestroy {
         this.totalRegistros.set(res.meta.total);
         this.paginaAtual.set(res.meta.page);
         this.loading.set(false);
-        this.configurarIntervalo();
       },
       error: () => {
         this.loading.set(false);
@@ -329,12 +349,21 @@ export class Home implements OnInit, OnDestroy {
     this.carregar();
   }
 
-  private configurarIntervalo(): void {
+  private configurarIntervalo(segundos: number): void {
     this.limparIntervalo();
-    const segundos = Number(this.refreshInterval());
     if (segundos > 0) {
-      this.intervalId = setInterval(() => this.carregar(), segundos * 1000);
+      this.intervalId = setInterval(() => {
+        if (!this.loading()) {
+          this.carregar();
+        }
+      }, segundos * 1000);
     }
+  }
+
+  private intervaloSalvo(): string {
+    const salvo = this.localStorage.get<number | string>(REFRESH_INTERVAL_KEY);
+    const valor = salvo !== null ? String(salvo) : '0';
+    return REFRESH_INTERVAL_OPTIONS.has(valor) ? valor : '0';
   }
 
   private limparIntervalo(): void {
