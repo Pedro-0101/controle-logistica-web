@@ -2,6 +2,7 @@ import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import type {
+  DiscardMovementsPayload,
   MovementDetail,
   MovementFilters,
   PaginatedMovements,
@@ -33,6 +34,15 @@ export class MovementService {
    */
   recalculate(id: string, payload: RecalculateMovementPayload): Observable<MovementDetail> {
     return this.api.post<MovementDetail>(`/movement/${id}/recalculate`, payload);
+  }
+
+  /**
+   * Descarta movimentos pendentes marcados como leitura incorreta. Aceita um
+   * ou vários ids (mesmo endpoint para descarte individual e em lote) e
+   * retorna os movimentos atualizados com `status: discarded`.
+   */
+  discard(payload: DiscardMovementsPayload): Observable<MovementDetail[]> {
+    return this.api.post<MovementDetail[]>('/movement/discard', payload);
   }
 
   /** Atualiza parcialmente os dados de um movimento existente. */

@@ -2,7 +2,7 @@ import type { HttpQuery } from './base.model';
 
 export type MovementType = 'entry' | 'exit';
 
-export type MovementStatus = 'open' | 'closed' | 'pending_review';
+export type MovementStatus = 'open' | 'closed' | 'pending_review' | 'discarded';
 
 /** Resumo do ponto retornado na listagem. */
 export interface PointSummary {
@@ -116,6 +116,14 @@ export type MovementEditableStatus = 'open' | 'closed';
 export interface RecalculateMovementPayload {
   plate?: string;
   vehicleId?: string;
+}
+
+/**
+ * Corpo do `POST /movement/discard` — lista de movimentos `pending_review`
+ * descartados como leitura incorreta. Entre 1 e 500 ids.
+ */
+export interface DiscardMovementsPayload {
+  ids: string[];
 }
 
 /** Corpo do `PATCH /movement/{id}` — todos os campos são opcionais. */
