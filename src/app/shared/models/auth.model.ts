@@ -32,6 +32,7 @@ export interface LoginResult {
 /** Resposta do GET /auth/me. */
 export interface MeResponse {
   userId: string;
+  name?: string;
   email: string;
   role: string;
   companyId: string | null;

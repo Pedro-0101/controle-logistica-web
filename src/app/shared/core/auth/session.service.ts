@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import type { User } from '@/shared/models';
 import { LoggerService } from '@/shared/services/logger.service';
 import { AuthService } from '@/shared/services/auth.service';
+import { AuthTokenService } from '@/shared/services/auth-token.service';
 
 /**
  * Estado de sessão do usuário autenticado.
@@ -14,6 +15,7 @@ import { AuthService } from '@/shared/services/auth.service';
 @Service()
 export class SessionService {
   private readonly authService = inject(AuthService);
+  private readonly tokenService = inject(AuthTokenService);
   private readonly logger = inject(LoggerService).create('SessionService');
 
   private readonly _usuario = signal<User | null>(null);
@@ -52,8 +54,8 @@ export class SessionService {
     this.carregando = (async () => {
       try {
         const usuario = await firstValueFrom(this.authService.me());
-        this._usuario.set(usuario);
-        this.logger.info('Usuário carregado', this.descreverUsuario(usuario));
+        this._usuario.set(this.comNomePersistido(usuario));
+        this.logger.info('Usuário carregado', this.descreverUsuario(this._usuario()));
         return true;
       } catch (error) {
         this.logger.error('Falha ao carregar usuário', error);
@@ -71,6 +73,18 @@ export class SessionService {
     this.logger.info('Encerrando sessão', this.descreverUsuario(this._usuario()));
     this._usuario.set(null);
     this.authService.logout();
+  }
+
+  /**
+   * Completa o usuário com o nome salvo via "lembrar de mim" quando o
+   * `/auth/me` não o retorna, evitando que o header exiba o e-mail no lugar
+   * do nome após restaurar a sessão.
+   */
+  private comNomePersistido(usuario: User): User {
+    if (usuario.name) return usuario;
+
+    const nomeSalvo = this.tokenService.rememberedUser()?.name;
+    return nomeSalvo ? { ...usuario, name: nomeSalvo } : usuario;
   }
 
   private descreverUsuario(usuario: User | null): unknown {

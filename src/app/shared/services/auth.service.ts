@@ -36,6 +36,7 @@ export class AuthService {
     return this.api.get<MeResponse>('/auth/me').pipe(
       map((response) => ({
         id: response.userId,
+        name: response.name,
         email: response.email,
         role: response.role,
         companyId: response.companyId,
