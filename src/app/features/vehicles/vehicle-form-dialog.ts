@@ -23,6 +23,7 @@ interface VehicleFormModel {
   code: string;
   type: VehicleType;
   active: boolean;
+  notes: string;
 }
 
 const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
@@ -99,6 +100,19 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
       }
 
       <z-form-field>
+        <z-form-label for="vehicle-notes">Observações</z-form-label>
+        <z-form-control>
+          <textarea
+            z-input
+            id="vehicle-notes"
+            rows="3"
+            [formField]="vehicleForm.notes"
+            placeholder="Informações adicionais sobre o veículo"
+          ></textarea>
+        </z-form-control>
+      </z-form-field>
+
+      <z-form-field>
         <z-form-control>
           <label class="flex items-center gap-2 text-sm font-medium leading-none">
             <z-checkbox [formField]="vehicleForm.active" />
@@ -140,6 +154,7 @@ export class VehicleFormDialog {
     code: this.data?.code ?? '',
     type: this.data?.type ?? 'own',
     active: this.data?.active ?? true,
+    notes: this.data?.notes ?? '',
   });
 
   protected readonly isOwnVehicle = computed(() => this.model().type === 'own');
@@ -159,6 +174,7 @@ export class VehicleFormDialog {
           try {
             const data = this.data;
             const code = model.type === 'own' ? { code: model.code } : {};
+            const notes = model.notes.trim();
 
             if (data) {
               const payload: UpdateVehicleRequest = {
@@ -166,6 +182,7 @@ export class VehicleFormDialog {
                 ...code,
                 type: model.type,
                 active: model.active,
+                notes,
               };
               const saved = await firstValueFrom(this.vehicleService.update(data.id, payload));
               this.logger.info('Veículo salvo', { id: saved.id });
@@ -177,6 +194,7 @@ export class VehicleFormDialog {
                 ...code,
                 type: model.type,
                 active: model.active,
+                ...(notes ? { notes } : {}),
               };
               const saved = await firstValueFrom(this.vehicleService.create(payload));
               this.logger.info('Veículo salvo', { id: saved.id });

@@ -35,6 +35,7 @@ interface VehicleFormModel {
   code: string;
   type: VehicleType;
   active: boolean;
+  notes: string;
 }
 
 const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
@@ -204,6 +205,19 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
           }
 
           <z-form-field>
+            <z-form-label for="review-vehicle-notes">Observações</z-form-label>
+            <z-form-control>
+              <textarea
+                z-input
+                id="review-vehicle-notes"
+                rows="3"
+                [formField]="vehicleForm.notes"
+                placeholder="Informações adicionais sobre o veículo"
+              ></textarea>
+            </z-form-control>
+          </z-form-field>
+
+          <z-form-field>
             <z-form-control>
               <label class="flex items-center gap-2 text-sm font-medium leading-none">
                 <z-checkbox [formField]="vehicleForm.active" />
@@ -267,6 +281,7 @@ export class PendingReviewDialog {
     code: '',
     type: 'visitor',
     active: true,
+    notes: '',
   });
 
   protected readonly isOwnVehicle = computed(() => this.vehicleModel().type === 'own');
@@ -348,11 +363,13 @@ export class PendingReviewDialog {
     this.submitting.set(true);
     try {
       const model = this.vehicleModel();
+      const notes = model.notes.trim();
       const payload: CreateVehicleRequest = {
         plate: model.plate.trim().toUpperCase(),
         type: model.type,
         active: model.active,
         ...(model.type === 'own' ? { code: model.code.trim() } : {}),
+        ...(notes ? { notes } : {}),
       };
       const vehicle = await firstValueFrom(this.vehicleService.create(payload));
       this.logger.info('Veículo criado', { id: vehicle.id });

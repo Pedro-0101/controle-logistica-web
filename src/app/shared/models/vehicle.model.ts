@@ -9,6 +9,7 @@ export interface Vehicle {
   type: VehicleType;
   companyId: string;
   active: boolean;
+  notes: string | null;
   createdById: string;
   updatedById: string | null;
   createdAt: string;
@@ -21,6 +22,7 @@ export interface CreateVehicleRequest {
   code?: string;
   type?: VehicleType;
   active?: boolean;
+  notes?: string;
 }
 
 /** Corpo do PATCH /vehicle/{id}. */
@@ -29,4 +31,5 @@ export interface UpdateVehicleRequest {
   code?: string;
   type?: VehicleType;
   active?: boolean;
+  notes?: string;
 }

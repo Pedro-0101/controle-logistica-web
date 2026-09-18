@@ -60,6 +60,7 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
               <th z-table-head>Placa</th>
               <th z-table-head>Código</th>
               <th z-table-head>Tipo</th>
+              <th z-table-head>Observações</th>
               <th z-table-head>Status</th>
               <th z-table-head class="text-right">Ações</th>
             </tr>
@@ -67,7 +68,7 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
           <tbody z-table-body>
             @if (loading()) {
               <tr z-table-row>
-                <td z-table-cell colspan="5" class="py-10 text-center text-muted-foreground">Carregando...</td>
+                <td z-table-cell colspan="6" class="py-10 text-center text-muted-foreground">Carregando...</td>
               </tr>
             } @else {
               @for (veiculo of veiculos(); track veiculo.id) {
@@ -75,6 +76,9 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
                   <td z-table-cell class="font-medium text-foreground">{{ veiculo.plate }}</td>
                   <td z-table-cell>{{ veiculo.code }}</td>
                   <td z-table-cell>{{ vehicleTypeLabel(veiculo.type) }}</td>
+                  <td z-table-cell class="max-w-[16rem] truncate" [title]="veiculo.notes ?? ''">
+                    {{ veiculo.notes || '—' }}
+                  </td>
                   <td z-table-cell>
                     <z-badge [zType]="statusBadgeType(veiculo.active)" zShape="default">
                       {{ veiculo.active ? 'Ativo' : 'Inativo' }}
@@ -107,7 +111,7 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
                 </tr>
               } @empty {
                 <tr z-table-row>
-                  <td z-table-cell colspan="5" class="py-10 text-center text-muted-foreground">
+                  <td z-table-cell colspan="6" class="py-10 text-center text-muted-foreground">
                     Nenhum veículo cadastrado.
                   </td>
                 </tr>
