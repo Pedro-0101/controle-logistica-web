@@ -12,6 +12,7 @@ import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCardComponent } from '@/shared/components/card';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
 import { ZardDialogService } from '@/shared/components/dialog';
+import { ZardInputDirective } from '@/shared/components/input';
 import type { PendingReviewMovement } from '@/shared/models';
 import { MovementService } from '@/shared/services/movement.service';
 import { PointService } from '@/shared/services/point.service';
@@ -38,6 +39,7 @@ import { PendingReviewDialog } from './pending-review-dialog';
     ZardButtonComponent,
     ZardCardComponent,
     ZardCheckboxComponent,
+    ZardInputDirective,
   ],
   template: `
     <app-site-header />
@@ -83,6 +85,25 @@ import { PendingReviewDialog } from './pending-review-dialog';
           description="Todas as leituras de placas foram processadas com sucesso."
         />
       } @else {
+        <div class="flex flex-wrap items-center gap-3">
+          <input
+            z-input
+            class="w-full sm:max-w-sm"
+            type="search"
+            placeholder="Buscar por placa ou ponto..."
+            aria-label="Buscar movimentações pendentes"
+            [value]="searchTerm()"
+            (input)="onSearchInput($event)"
+          />
+        </div>
+
+        @if (movimentosFiltrados().length === 0) {
+          <gp-empty-state
+            icon="lucideSearch"
+            title="Nenhum resultado"
+            description="Nenhuma movimentação corresponde à busca informada."
+          />
+        } @else {
         <div
           class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-4 py-3"
         >
@@ -102,9 +123,9 @@ import { PendingReviewDialog } from './pending-review-dialog';
                 {{ selecionadosCount() === 1 ? 'selecionada' : 'selecionadas' }}
                 de
               }
-              {{ movimentos().length }}
+              {{ movimentosFiltrados().length }}
               {{
-                movimentos().length === 1
+                movimentosFiltrados().length === 1
                   ? 'movimentação aguardando revisão'
                   : 'movimentações aguardando revisão'
               }}
@@ -127,7 +148,7 @@ import { PendingReviewDialog } from './pending-review-dialog';
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-          @for (m of movimentos(); track m.id) {
+          @for (m of movimentosFiltrados(); track m.id) {
             <z-card>
               <div class="flex flex-col gap-3 p-4">
                 <div class="flex items-center justify-between gap-2">
@@ -198,6 +219,7 @@ import { PendingReviewDialog } from './pending-review-dialog';
             </z-card>
           }
         </div>
+        }
       }
     </main>
   `,
@@ -215,15 +237,37 @@ export class PendingReview implements OnInit {
   protected readonly loading = signal(false);
   protected readonly descartando = signal(false);
   protected readonly selecionados = signal<Set<string>>(new Set());
+  protected readonly searchTerm = signal('');
+
+  protected readonly movimentosFiltrados = computed(() => {
+    const termo = this.normalizar(this.searchTerm().trim());
+    const movimentos = this.movimentos();
+    if (!termo) return movimentos;
+
+    return movimentos.filter((m) => {
+      const placa = this.normalizar(m.recognizedPlate ?? '');
+      const ponto = this.normalizar(this.pontoNome(m.pointId));
+      return placa.includes(termo) || ponto.includes(termo);
+    });
+  });
 
   protected readonly selecionadosCount = computed(() => this.selecionados().size);
   protected readonly todosSelecionados = computed(() => {
-    const movimentos = this.movimentos();
+    const movimentos = this.movimentosFiltrados();
     return movimentos.length > 0 && movimentos.every((m) => this.selecionados().has(m.id));
   });
 
   ngOnInit(): void {
     void this.carregar();
+  }
+
+  protected onSearchInput(event: Event): void {
+    this.searchTerm.set((event.target as HTMLInputElement).value);
+    this.selecionados.set(new Set());
+  }
+
+  private normalizar(valor: string): string {
+    return valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   }
 
   protected pontoNome(pointId: string | null): string {
@@ -259,7 +303,7 @@ export class PendingReview implements OnInit {
 
   protected toggleTodos(selecionar: boolean): void {
     this.selecionados.set(
-      selecionar ? new Set(this.movimentos().map((m) => m.id)) : new Set(),
+      selecionar ? new Set(this.movimentosFiltrados().map((m) => m.id)) : new Set(),
     );
   }
 
