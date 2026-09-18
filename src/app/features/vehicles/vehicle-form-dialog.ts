@@ -67,25 +67,6 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
       </z-form-field>
 
       <z-form-field>
-        <z-form-label [zRequired]="true" for="vehicle-code">Código</z-form-label>
-        <z-form-control>
-          <input
-            z-input
-            id="vehicle-code"
-            type="text"
-            [formField]="vehicleForm.code"
-            autocomplete="off"
-            placeholder="VEH-001"
-            [attr.aria-invalid]="vehicleForm.code().invalid() && vehicleForm.code().touched()"
-            [attr.aria-describedby]="vehicleForm.code().errors().length ? 'vehicle-code-error' : null"
-          />
-        </z-form-control>
-        @if (vehicleForm.code().invalid() && vehicleForm.code().touched()) {
-          <z-form-message id="vehicle-code-error" [zError]="true">{{ firstError(vehicleForm.code()) }}</z-form-message>
-        }
-      </z-form-field>
-
-      <z-form-field>
         <z-form-label [zRequired]="true" for="vehicle-type">Tipo</z-form-label>
         <z-form-control>
           <select z-input id="vehicle-type" [formField]="vehicleForm.type">
@@ -95,6 +76,27 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
           </select>
         </z-form-control>
       </z-form-field>
+
+      @if (isOwnVehicle()) {
+        <z-form-field>
+          <z-form-label [zRequired]="true" for="vehicle-code">Código</z-form-label>
+          <z-form-control>
+            <input
+              z-input
+              id="vehicle-code"
+              type="text"
+              [formField]="vehicleForm.code"
+              autocomplete="off"
+              placeholder="VEH-001"
+              [attr.aria-invalid]="vehicleForm.code().invalid() && vehicleForm.code().touched()"
+              [attr.aria-describedby]="vehicleForm.code().errors().length ? 'vehicle-code-error' : null"
+            />
+          </z-form-control>
+          @if (vehicleForm.code().invalid() && vehicleForm.code().touched()) {
+            <z-form-message id="vehicle-code-error" [zError]="true">{{ firstError(vehicleForm.code()) }}</z-form-message>
+          }
+        </z-form-field>
+      }
 
       <z-form-field>
         <z-form-control>
@@ -140,11 +142,13 @@ export class VehicleFormDialog {
     active: this.data?.active ?? true,
   });
 
+  protected readonly isOwnVehicle = computed(() => this.model().type === 'own');
+
   protected readonly vehicleForm = form(
     this.model,
     (fields) => {
       required(fields.plate, { message: 'Informe a placa.' });
-      required(fields.code, { message: 'Informe o código.' });
+      required(fields.code, { message: 'Informe o código.', when: () => this.isOwnVehicle() });
     },
     {
       submission: {
@@ -154,11 +158,12 @@ export class VehicleFormDialog {
 
           try {
             const data = this.data;
+            const code = model.type === 'own' ? { code: model.code } : {};
 
             if (data) {
               const payload: UpdateVehicleRequest = {
                 plate: model.plate,
-                code: model.code,
+                ...code,
                 type: model.type,
                 active: model.active,
               };
@@ -169,7 +174,7 @@ export class VehicleFormDialog {
             } else {
               const payload: CreateVehicleRequest = {
                 plate: model.plate,
-                code: model.code,
+                ...code,
                 type: model.type,
                 active: model.active,
               };

@@ -15,10 +15,10 @@ export interface Vehicle {
   updatedAt: string;
 }
 
-/** Corpo do POST /vehicle. */
+/** Corpo do POST /vehicle. O `code` é omitido para terceiro/visitante (gerado pelo back-end). */
 export interface CreateVehicleRequest {
   plate: string;
-  code: string;
+  code?: string;
   type?: VehicleType;
   active?: boolean;
 }

@@ -1,4 +1,4 @@
-import { afterNextRender, Component, inject, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, inject, signal, viewChild } from '@angular/core';
 import type { ElementRef } from '@angular/core';
 import { FormField, FormRoot, form, required } from '@angular/forms/signals';
 import type { FieldState } from '@angular/forms/signals';
@@ -139,6 +139,17 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
       } @else {
         <form [formRoot]="vehicleForm" class="flex flex-col gap-4" novalidate>
           <z-form-field>
+            <z-form-label [zRequired]="true" for="review-vehicle-type">Tipo</z-form-label>
+            <z-form-control>
+              <select z-input id="review-vehicle-type" [formField]="vehicleForm.type">
+                @for (option of vehicleTypeOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </z-form-control>
+          </z-form-field>
+
+          <z-form-field>
             <z-form-label [zRequired]="true" for="review-vehicle-plate">Placa</z-form-label>
             <z-form-control>
               <input
@@ -163,39 +174,34 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
             }
           </z-form-field>
 
-          <z-form-field>
-            <z-form-label [zRequired]="true" for="review-vehicle-code">Código</z-form-label>
-            <z-form-control>
-              <input
-                z-input
-                id="review-vehicle-code"
-                type="text"
-                [formField]="vehicleForm.code"
-                autocomplete="off"
-                placeholder="VEH-001"
-                [attr.aria-invalid]="vehicleForm.code().invalid() && vehicleForm.code().touched()"
-                [attr.aria-describedby]="
-                  vehicleForm.code().errors().length ? 'review-vehicle-code-error' : null
-                "
-              />
-            </z-form-control>
-            @if (vehicleForm.code().invalid() && vehicleForm.code().touched()) {
-              <z-form-message id="review-vehicle-code-error" [zError]="true">
-                {{ firstError(vehicleForm.code()) }}
-              </z-form-message>
-            }
-          </z-form-field>
-
-          <z-form-field>
-            <z-form-label [zRequired]="true" for="review-vehicle-type">Tipo</z-form-label>
-            <z-form-control>
-              <select z-input id="review-vehicle-type" [formField]="vehicleForm.type">
-                @for (option of vehicleTypeOptions; track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
-            </z-form-control>
-          </z-form-field>
+          @if (isOwnVehicle()) {
+            <z-form-field>
+              <z-form-label [zRequired]="true" for="review-vehicle-code">Código</z-form-label>
+              <z-form-control>
+                <input
+                  z-input
+                  id="review-vehicle-code"
+                  type="text"
+                  [formField]="vehicleForm.code"
+                  autocomplete="off"
+                  placeholder="VEH-001"
+                  [attr.aria-invalid]="vehicleForm.code().invalid() && vehicleForm.code().touched()"
+                  [attr.aria-describedby]="
+                    vehicleForm.code().errors().length ? 'review-vehicle-code-error' : null
+                  "
+                />
+              </z-form-control>
+              @if (vehicleForm.code().invalid() && vehicleForm.code().touched()) {
+                <z-form-message id="review-vehicle-code-error" [zError]="true">
+                  {{ firstError(vehicleForm.code()) }}
+                </z-form-message>
+              }
+            </z-form-field>
+          } @else {
+            <p class="text-sm text-muted-foreground">
+              O código do veículo será gerado automaticamente.
+            </p>
+          }
 
           <z-form-field>
             <z-form-control>
@@ -263,11 +269,16 @@ export class PendingReviewDialog {
     active: true,
   });
 
+  protected readonly isOwnVehicle = computed(() => this.vehicleModel().type === 'own');
+
   protected readonly vehicleForm = form(
     this.vehicleModel,
     (fields) => {
       required(fields.plate, { message: 'Informe a placa.' });
-      required(fields.code, { message: 'Informe o código.' });
+      required(fields.code, {
+        message: 'Informe o código.',
+        when: () => this.isOwnVehicle(),
+      });
     },
     {
       submission: {
@@ -339,9 +350,9 @@ export class PendingReviewDialog {
       const model = this.vehicleModel();
       const payload: CreateVehicleRequest = {
         plate: model.plate.trim().toUpperCase(),
-        code: model.code.trim(),
         type: model.type,
         active: model.active,
+        ...(model.type === 'own' ? { code: model.code.trim() } : {}),
       };
       const vehicle = await firstValueFrom(this.vehicleService.create(payload));
       this.logger.info('Veículo criado', { id: vehicle.id });
