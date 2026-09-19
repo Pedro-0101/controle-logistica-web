@@ -7,6 +7,7 @@ import { toast } from 'ngx-sonner';
 import type { ApiError, CreateVehicleRequest, UpdateVehicleRequest, Vehicle, VehicleType } from '@/shared/models';
 import { VehicleService } from '@/shared/services/vehicle.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
@@ -37,6 +38,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
   imports: [
     FormRoot,
     FormField,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardFormFieldComponent,
@@ -56,6 +58,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
             id="vehicle-plate"
             type="text"
             [formField]="vehicleForm.plate"
+            zCase="upper"
             autocomplete="off"
             placeholder="ABC1D23"
             [attr.aria-invalid]="vehicleForm.plate().invalid() && vehicleForm.plate().touched()"
@@ -87,6 +90,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
               id="vehicle-code"
               type="text"
               [formField]="vehicleForm.code"
+              zCase="upper"
               autocomplete="off"
               placeholder="VEH-001"
               [attr.aria-invalid]="vehicleForm.code().invalid() && vehicleForm.code().touched()"
@@ -107,6 +111,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
             id="vehicle-notes"
             rows="3"
             [formField]="vehicleForm.notes"
+            zCase="sentence"
             placeholder="Informações adicionais sobre o veículo"
           ></textarea>
         </z-form-control>

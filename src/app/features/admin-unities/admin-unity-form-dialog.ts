@@ -13,6 +13,7 @@ import type {
 } from '@/shared/models';
 import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
@@ -38,6 +39,7 @@ interface AdminUnityFormModel {
   imports: [
     FormRoot,
     FormField,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardFormFieldComponent,
@@ -57,6 +59,7 @@ interface AdminUnityFormModel {
             id="unity-name"
             type="text"
             [formField]="unitForm.name"
+            zCase="title"
             autocomplete="off"
             placeholder="Unidade Centro"
             [attr.aria-invalid]="unitForm.name().invalid() && unitForm.name().touched()"
@@ -76,6 +79,7 @@ interface AdminUnityFormModel {
             id="unity-code"
             type="text"
             [formField]="unitForm.code"
+            zCase="upper"
             autocomplete="off"
             placeholder="UA-001"
             [attr.aria-invalid]="unitForm.code().invalid() && unitForm.code().touched()"
@@ -95,6 +99,7 @@ interface AdminUnityFormModel {
             id="unity-address"
             type="text"
             [formField]="unitForm.address"
+            zCase="sentence"
             autocomplete="off"
             placeholder="Rua Principal, 123 - Centro"
             [attr.aria-invalid]="unitForm.address().invalid() && unitForm.address().touched()"

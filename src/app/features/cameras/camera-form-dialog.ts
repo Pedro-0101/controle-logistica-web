@@ -18,6 +18,7 @@ import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { CameraService } from '@/shared/services/camera.service';
 import { PointService } from '@/shared/services/point.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { firstError } from '@/shared/utils/form-utils';
 import { createStepNavigation } from '@/shared/utils/step-navigation';
 import { NgIcon } from '@ng-icons/core';
@@ -60,6 +61,7 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
     FormRoot,
     FormField,
     NgIcon,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardFormFieldComponent,
     ZardFormLabelComponent,
@@ -122,6 +124,7 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
               id="camera-name"
               type="text"
               [formField]="cameraForm.name"
+              zCase="title"
               autocomplete="off"
               placeholder="Câmera Portaria 1"
               [attr.aria-invalid]="cameraForm.name().invalid() && cameraForm.name().touched()"
@@ -178,6 +181,7 @@ const AUTH_TYPE_OPTIONS: { value: CameraAuthType; label: string }[] = [
               id="camera-description"
               type="text"
               [formField]="cameraForm.description"
+              zCase="sentence"
               autocomplete="off"
               placeholder="Entrada principal"
             />

@@ -14,6 +14,7 @@ import type {
 import { MovementService } from '@/shared/services/movement.service';
 import { VehicleService } from '@/shared/services/vehicle.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { ZardBadgeComponent } from '@/shared/components/badge';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
@@ -58,6 +59,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
   imports: [
     FormRoot,
     FormField,
+    CaseTransformDirective,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardCheckboxComponent,
@@ -90,6 +92,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
                 id="review-plate"
                 type="text"
                 [formField]="plateForm.plate"
+                zCase="upper"
                 autocomplete="off"
                 placeholder="ABC1D23"
                 class="font-mono uppercase"
@@ -159,6 +162,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
                 id="review-vehicle-plate"
                 type="text"
                 [formField]="vehicleForm.plate"
+                zCase="upper"
                 autocomplete="off"
                 placeholder="ABC1D23"
                 class="font-mono uppercase"
@@ -184,6 +188,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
                   id="review-vehicle-code"
                   type="text"
                   [formField]="vehicleForm.code"
+                  zCase="upper"
                   autocomplete="off"
                   placeholder="VEH-001"
                   [attr.aria-invalid]="vehicleForm.code().invalid() && vehicleForm.code().touched()"
@@ -212,6 +217,7 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
                 id="review-vehicle-notes"
                 rows="3"
                 [formField]="vehicleForm.notes"
+                zCase="sentence"
                 placeholder="Informações adicionais sobre o veículo"
               ></textarea>
             </z-form-control>

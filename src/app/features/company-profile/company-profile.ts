@@ -10,6 +10,7 @@ import { SessionService } from '@/shared/core/auth';
 import { CompanyService } from '@/shared/services/company.service';
 import { CompanyConfigService } from '@/shared/services/company-config.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { firstError } from '@/shared/utils/form-utils';
 import { SiteHeader } from '@/shared/components/site-header/site-header';
 import { ZardButtonComponent } from '@/shared/components/button';
@@ -61,6 +62,7 @@ interface RecognitionConfigModel {
     FormRoot,
     FormField,
     NgIcon,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardCardComponent,
     ZardFormDescriptionComponent,
@@ -246,6 +248,7 @@ interface RecognitionConfigModel {
                       id="company-name"
                       type="text"
                       [formField]="profileForm.name"
+                      zCase="title"
                       autocomplete="off"
                       placeholder="Ex.: Logística Sul"
                       [attr.aria-invalid]="profileForm.name().invalid() && profileForm.name().touched()"
@@ -265,6 +268,7 @@ interface RecognitionConfigModel {
                       id="company-company-name"
                       type="text"
                       [formField]="profileForm.companyName"
+                      zCase="title"
                       autocomplete="off"
                       placeholder="Ex.: Logística Sul LTDA"
                       [attr.aria-invalid]="profileForm.companyName().invalid() && profileForm.companyName().touched()"
@@ -324,6 +328,7 @@ interface RecognitionConfigModel {
                       id="company-address"
                       type="text"
                       [formField]="profileForm.address"
+                      zCase="sentence"
                       autocomplete="off"
                       placeholder="Rua Principal, 123 - Centro"
                       [attr.aria-invalid]="profileForm.address().invalid() && profileForm.address().touched()"

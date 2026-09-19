@@ -12,6 +12,7 @@ import type {
 } from '@/shared/models';
 import { MovementService } from '@/shared/services/movement.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardDialogRef, Z_MODAL_DATA } from '@/shared/components/dialog';
 import {
@@ -56,6 +57,7 @@ function fromLocalDateTimeInput(value: string): string {
   imports: [
     FormRoot,
     FormField,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardFormFieldComponent,
     ZardFormLabelComponent,
@@ -96,6 +98,7 @@ function fromLocalDateTimeInput(value: string): string {
             id="movement-driver"
             type="text"
             [formField]="editForm.driverName"
+            zCase="title"
             autocomplete="off"
             placeholder="João Silva"
           />
@@ -110,6 +113,7 @@ function fromLocalDateTimeInput(value: string): string {
             id="movement-purpose"
             type="text"
             [formField]="editForm.purpose"
+            zCase="sentence"
             autocomplete="off"
             placeholder="Entrega de mercadoria"
           />
@@ -119,7 +123,7 @@ function fromLocalDateTimeInput(value: string): string {
       <z-form-field>
         <z-form-label for="movement-notes">Observações</z-form-label>
         <z-form-control>
-          <textarea z-input id="movement-notes" rows="3" [formField]="editForm.notes"></textarea>
+          <textarea z-input id="movement-notes" rows="3" [formField]="editForm.notes" zCase="sentence"></textarea>
         </z-form-control>
       </z-form-field>
 

@@ -17,6 +17,7 @@ import type {
 import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { PointService } from '@/shared/services/point.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { firstError } from '@/shared/utils/form-utils';
 import { createStepNavigation } from '@/shared/utils/step-navigation';
 import { ZardButtonComponent } from '@/shared/components/button';
@@ -69,6 +70,7 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
   imports: [
     FormRoot,
     FormField,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardFormFieldComponent,
@@ -105,6 +107,7 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                   id="point-name"
                   type="text"
                   [formField]="pointForm.name"
+                  zCase="title"
                   autocomplete="off"
                   placeholder="Portão Principal"
                   [attr.aria-invalid]="pointForm.name().invalid() && pointForm.name().touched()"
@@ -124,6 +127,7 @@ const STEP_LABELS = ['Identificação', 'Configuração', 'Registro Automático'
                   id="point-code"
                   type="text"
                   [formField]="pointForm.code"
+                  zCase="upper"
                   autocomplete="off"
                   placeholder="P-001"
                   [attr.aria-invalid]="pointForm.code().invalid() && pointForm.code().touched()"

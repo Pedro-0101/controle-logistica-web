@@ -9,6 +9,7 @@ import type { ApiError, CreateUserRequest, ManagedUser, Point, UpdateUserRequest
 import { LoggerService } from '@/shared/services/logger.service';
 import { PointService } from '@/shared/services/point.service';
 import { UserService } from '@/shared/services/user.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { firstError } from '@/shared/utils/form-utils';
 import { createStepNavigation } from '@/shared/utils/step-navigation';
 import { ZardButtonComponent } from '@/shared/components/button';
@@ -42,6 +43,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   imports: [
     FormRoot,
     FormField,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardFormFieldComponent,
     ZardFormLabelComponent,
@@ -68,6 +70,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
               id="user-name"
               type="text"
               [formField]="userForm.name"
+              zCase="title"
               autocomplete="off"
               placeholder="Nome completo"
               [attr.aria-invalid]="userForm.name().invalid() && userForm.name().touched()"

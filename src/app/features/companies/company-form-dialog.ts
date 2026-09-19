@@ -15,6 +15,7 @@ import type {
 } from '@/shared/models';
 import { CompanyService } from '@/shared/services/company.service';
 import { LoggerService } from '@/shared/services/logger.service';
+import { CaseTransformDirective } from '@/shared/core/directives/case-transform/case-transform.directive';
 import { firstError } from '@/shared/utils/form-utils';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCheckboxComponent } from '@/shared/components/checkbox';
@@ -48,6 +49,7 @@ type WizardStep = 'company' | 'admin';
     FormRoot,
     FormField,
     NgIcon,
+    CaseTransformDirective,
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardFormFieldComponent,
@@ -74,6 +76,7 @@ type WizardStep = 'company' | 'admin';
               id="company-name"
               type="text"
               [formField]="companyForm.name"
+              zCase="title"
               autocomplete="off"
               placeholder="Ex.: Logística Sul"
               [attr.aria-invalid]="companyForm.name().invalid() && companyForm.name().touched()"
@@ -93,6 +96,7 @@ type WizardStep = 'company' | 'admin';
               id="company-company-name"
               type="text"
               [formField]="companyForm.companyName"
+              zCase="title"
               autocomplete="off"
               placeholder="Ex.: Logística Sul LTDA"
               [attr.aria-invalid]="companyForm.companyName().invalid() && companyForm.companyName().touched()"
@@ -152,6 +156,7 @@ type WizardStep = 'company' | 'admin';
               id="company-address"
               type="text"
               [formField]="companyForm.address"
+              zCase="sentence"
               autocomplete="off"
               placeholder="Rua Principal, 123 - Centro"
               [attr.aria-invalid]="companyForm.address().invalid() && companyForm.address().touched()"
@@ -201,6 +206,7 @@ type WizardStep = 'company' | 'admin';
               id="company-admin-name"
               type="text"
               [formField]="companyForm.adminName"
+              zCase="title"
               autocomplete="off"
               placeholder="Nome completo"
               [attr.aria-invalid]="companyForm.adminName().invalid() && companyForm.adminName().touched()"
