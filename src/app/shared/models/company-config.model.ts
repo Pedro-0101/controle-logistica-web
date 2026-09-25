@@ -47,6 +47,11 @@ export interface CompanyConfig {
   requireDriverName: boolean;
   requirePurpose: boolean;
 
+  // Jornada (relatórios de tempo)
+  journeyWindowStart: string;
+  journeyWindowEnd: string;
+  journeyWindowDays: string;
+
   // Audit
   createdById: string;
   updatedById: string | null;

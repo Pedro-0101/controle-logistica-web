@@ -8,6 +8,7 @@ export * from './company.model';
 export * from './company-config.model';
 export * from './external-interaction.model';
 export * from './point.model';
+export * from './report.model';
 export * from './user.model';
 export * from './vehicle.model';
 export * from './movement.model';

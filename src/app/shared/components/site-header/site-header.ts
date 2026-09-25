@@ -35,6 +35,17 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
             >Início</a
           >
 
+          <a
+            z-button
+            zType="ghost"
+            zSize="sm"
+            routerLink="/relatorios"
+            routerLinkActive="bg-accent"
+          >
+            <ng-icon name="lucideGauge" aria-hidden="true" class="size-4" />
+            Relatórios
+          </a>
+
           <z-navigation-menu>
             <div z-navigation-menu-list>
               <div z-navigation-menu-item>

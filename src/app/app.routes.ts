@@ -22,6 +22,12 @@ export const routes: Routes = [
     title: 'Revisão de movimentações',
   },
   {
+    path: 'relatorios',
+    canActivate: [authGuard, companyGuard],
+    loadComponent: () => import('./features/reports/reports').then((m) => m.Reports),
+    title: 'Relatórios de tempo',
+  },
+  {
     path: 'usuarios',
     canActivate: [authGuard, companyGuard],
     loadComponent: () => import('./features/users/users').then((m) => m.Users),
