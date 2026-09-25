@@ -1,4 +1,12 @@
-import { Component, computed, inject, OnInit, signal, ViewContainerRef } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+  ViewContainerRef,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom, take } from 'rxjs';
 import { NgIcon } from '@ng-icons/core';
@@ -180,6 +188,31 @@ import { PendingReviewDialog } from './pending-review-dialog';
                   </span>
                 </div>
 
+                @if (fotoUrl(m.id); as url) {
+                  <img
+                    [src]="url"
+                    [alt]="
+                      'Foto da placa ' +
+                      (m.recognizedPlate ?? 'não reconhecida') +
+                      ' lida pela câmera'
+                    "
+                    class="h-40 w-full rounded-md border border-border bg-muted object-contain"
+                    loading="lazy"
+                  />
+                } @else if (m.photoPath) {
+                  <div
+                    class="flex h-40 w-full items-center justify-center rounded-md border border-border bg-muted text-xs text-muted-foreground"
+                  >
+                    Carregando foto...
+                  </div>
+                } @else {
+                  <div
+                    class="flex h-40 w-full items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-xs text-muted-foreground"
+                  >
+                    Foto não disponível
+                  </div>
+                }
+
                 <div class="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <ng-icon name="lucideMapPin" aria-hidden="true" class="size-4" />
                   {{ pontoNome(m.pointId) }}
@@ -224,7 +257,7 @@ import { PendingReviewDialog } from './pending-review-dialog';
     </main>
   `,
 })
-export class PendingReview implements OnInit {
+export class PendingReview implements OnInit, OnDestroy {
   private readonly movementService = inject(MovementService);
   private readonly pointService = inject(PointService);
   private readonly dialog = inject(ZardDialogService);
@@ -232,7 +265,10 @@ export class PendingReview implements OnInit {
   private readonly vcr = inject(ViewContainerRef);
   private readonly logger = inject(LoggerService).create('PendingReview');
 
+  private fotoLoadId = 0;
+
   protected readonly movimentos = signal<PendingReviewMovement[]>([]);
+  protected readonly fotos = signal<Map<string, string>>(new Map());
   protected readonly pontos = signal<Record<string, string>>({});
   protected readonly loading = signal(false);
   protected readonly descartando = signal(false);
@@ -259,6 +295,15 @@ export class PendingReview implements OnInit {
 
   ngOnInit(): void {
     void this.carregar();
+  }
+
+  ngOnDestroy(): void {
+    this.fotoLoadId++;
+    this.revogarFotos();
+  }
+
+  protected fotoUrl(movementId: string): string | null {
+    return this.fotos().get(movementId) ?? null;
   }
 
   protected onSearchInput(event: Event): void {
@@ -339,7 +384,8 @@ export class PendingReview implements OnInit {
       zDescription:
         'Corrija a placa lida pela câmera ou cadastre o veículo para confirmar a movimentação.',
       zHideFooter: true,
-      zWidth: '26rem',
+      zWidth: 'min(56rem, 92vw)',
+      zCustomClasses: 'max-h-[calc(100vh-2rem)] overflow-y-auto',
       zMaskClosable: false,
     });
 
@@ -360,12 +406,55 @@ export class PendingReview implements OnInit {
       this.movimentos.set(movimentos);
       this.pontos.set(Object.fromEntries(pontos.map((p) => [p.id, p.name])));
       this.selecionados.set(new Set());
+      void this.carregarFotos(movimentos);
     } catch (error) {
       this.logger.error('Falha ao carregar movimentações pendentes', error);
       toast.error('Falha ao carregar movimentações pendentes.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /**
+   * Baixa as fotos de evidência das ocorrências pendentes e expõe cada uma como
+   * `blob:` URL. A foto só existe enquanto o movimento aguarda revisão, por isso
+   * só é buscada quando `photoPath` está preenchido.
+   */
+  private async carregarFotos(movimentos: PendingReviewMovement[]): Promise<void> {
+    const loadId = ++this.fotoLoadId;
+    this.revogarFotos();
+
+    const comFoto = movimentos.filter((m) => m.photoPath);
+    if (comFoto.length === 0) return;
+
+    const urls = new Map<string, string>();
+    await Promise.allSettled(
+      comFoto.map(async (movimento) => {
+        try {
+          const blob = await firstValueFrom(this.movementService.evidence(movimento.id));
+          urls.set(movimento.id, URL.createObjectURL(blob));
+        } catch (error) {
+          this.logger.error('Falha ao carregar foto de evidência', {
+            error,
+            movementId: movimento.id,
+          });
+        }
+      }),
+    );
+
+    // Descarta o resultado se uma nova carga começou ou o componente foi destruído.
+    if (loadId !== this.fotoLoadId) {
+      for (const url of urls.values()) URL.revokeObjectURL(url);
+      return;
+    }
+    this.fotos.set(urls);
+  }
+
+  private revogarFotos(): void {
+    for (const url of this.fotos().values()) {
+      URL.revokeObjectURL(url);
+    }
+    this.fotos.set(new Map());
   }
 
   private async confirmarDescarte(

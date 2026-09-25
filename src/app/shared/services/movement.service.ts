@@ -29,6 +29,16 @@ export class MovementService {
   }
 
   /**
+   * Baixa a foto de evidência (JPEG) de um movimento como `Blob`.
+   *
+   * A rota exige o token JWT, então a imagem não pode ser usada direto em
+   * `img[src]`; monte um `URL.createObjectURL(blob)` no componente.
+   */
+  evidence(id: string): Observable<Blob> {
+    return this.api.getBlob(`/movement/${id}/evidence`);
+  }
+
+  /**
    * Reprocessa um movimento pendente com a placa corrigida ou o veículo
    * recém-cadastrado. Em caso de sucesso o movimento passa para `open`.
    */

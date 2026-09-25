@@ -30,6 +30,13 @@ export class ApiClientService {
       .pipe(catchError((error: unknown) => throwError(() => toApiError(error))));
   }
 
+  /** Baixa um recurso binário (ex.: imagem de evidência) como `Blob`. */
+  getBlob(path: string, options?: ApiRequestOptions): Observable<Blob> {
+    return this.http
+      .get(this.url(path), { ...this.toOptions(options), responseType: 'blob' as const })
+      .pipe(catchError((error: unknown) => throwError(() => toApiError(error))));
+  }
+
   post<T>(path: string, body?: unknown, options?: ApiRequestOptions): Observable<T> {
     return this.http
       .post<T>(this.url(path), body, this.toOptions(options))
