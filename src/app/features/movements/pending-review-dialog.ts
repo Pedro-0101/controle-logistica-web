@@ -59,8 +59,10 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
  * Dialog de revisão de um movimento `pending_review`.
  *
  * Dois fluxos:
- * - **Corrigir placa**: informa a placa correta de um veículo já cadastrado
- *   (`POST /movement/:id/recalculate` com `{ plate }`).
+ * - **Confirmar placa**: informa a placa correta e tenta recalcular o movimento
+ *   (`POST /movement/:id/recalculate` com `{ plate }`). Se o veículo não existir
+ *   na base, o formulário passa automaticamente para o cadastro com a placa
+ *   preenchida.
  * - **Cadastrar veículo**: cria o veículo (`POST /vehicle`) e vincula ao
  *   movimento (`recalculate` com `{ vehicleId }`).
  */
@@ -215,24 +217,6 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
             }
           </z-form-field>
 
-          @if (placaNaoEncontrada()) {
-            <p class="text-sm text-warning" role="alert">
-              Nenhum veículo cadastrado com esta placa. Cadastre o veículo para vincular ao
-              movimento.
-            </p>
-          }
-
-          <button
-            z-button
-            zType="link"
-            zSize="sm"
-            type="button"
-            class="self-start px-0"
-            (click)="irParaCadastro()"
-          >
-            Cadastrar novo veículo
-          </button>
-
           <div class="flex items-center justify-end gap-2 pt-2">
             <button z-button zType="ghost" type="button" (click)="cancelar()">Cancelar</button>
             <button
@@ -248,6 +232,14 @@ const VEHICLE_TYPE_OPTIONS: { value: VehicleType; label: string }[] = [
         </form>
       } @else {
         <form [formRoot]="vehicleForm" class="flex flex-col gap-4" novalidate>
+          @if (veiculoNaoEncontrado()) {
+            <p class="text-sm text-muted-foreground" role="status">
+              Nenhum veículo cadastrado com a placa
+              <span class="font-mono font-medium text-foreground">{{ placaCadastro() }}</span
+              >. Preencha os dados abaixo para cadastrá-lo e confirmar a movimentação.
+            </p>
+          }
+
           <z-form-field>
             <z-form-label [zRequired]="true" for="review-vehicle-type">Tipo</z-form-label>
             <z-form-control>
@@ -364,7 +356,7 @@ export class PendingReviewDialog implements OnDestroy {
 
   protected readonly modo = signal<'plate' | 'register'>('plate');
   protected readonly submitting = signal(false);
-  protected readonly placaNaoEncontrada = signal(false);
+  protected readonly veiculoNaoEncontrado = signal(false);
   protected readonly vehicleTypeOptions = VEHICLE_TYPE_OPTIONS;
   protected readonly fotoUrl = signal<string | null>(null);
   protected readonly carregandoFoto = signal(false);
@@ -411,6 +403,7 @@ export class PendingReviewDialog implements OnDestroy {
   });
 
   protected readonly isOwnVehicle = computed(() => this.vehicleModel().type === 'own');
+  protected readonly placaCadastro = computed(() => this.vehicleModel().plate);
 
   protected readonly vehicleForm = form(
     this.vehicleModel,
@@ -542,16 +535,17 @@ export class PendingReviewDialog implements OnDestroy {
     };
   }
 
-  protected irParaCadastro(): void {
-    this.vehicleModel.update((model) => ({ ...model, plate: this.plateModel().plate }));
+  private irParaCadastro(plate: string): void {
+    this.vehicleModel.update((model) => ({ ...model, plate: plate.trim().toUpperCase() }));
     this.modo.set('register');
-    this.placaNaoEncontrada.set(false);
+    this.veiculoNaoEncontrado.set(true);
     setTimeout(() => this.vehiclePlateInput()?.nativeElement.focus(), 0);
   }
 
   protected voltarParaPlaca(): void {
     this.plateModel.update((model) => ({ ...model, plate: this.vehicleModel().plate }));
     this.modo.set('plate');
+    this.veiculoNaoEncontrado.set(false);
     setTimeout(() => this.plateInput()?.nativeElement.focus(), 0);
   }
 
@@ -576,7 +570,7 @@ export class PendingReviewDialog implements OnDestroy {
 
   private async confirmarPlaca(plate: string): Promise<void> {
     this.submitting.set(true);
-    this.placaNaoEncontrada.set(false);
+    this.veiculoNaoEncontrado.set(false);
     try {
       const saved = await firstValueFrom(
         this.movementService.recalculate(this.movimento.id, { plate: plate.trim().toUpperCase() }),
@@ -624,8 +618,14 @@ export class PendingReviewDialog implements OnDestroy {
     this.logger.error('Falha na revisão de movimento', error);
 
     if (apiError?.status === 404) {
-      this.placaNaoEncontrada.set(true);
-      this.modo.set('plate');
+      // Placa válida, mas sem veículo cadastrado: segue para o cadastro com a
+      // placa já informada, sem exibir erro.
+      if (apiError.message?.toLowerCase().includes('veículo')) {
+        this.irParaCadastro(this.plateModel().plate);
+        return;
+      }
+      toast.error(apiError.message || fallback);
+      this.dialogRef.close(null);
       return;
     }
 
