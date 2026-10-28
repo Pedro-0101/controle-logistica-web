@@ -11,7 +11,7 @@ export type PointType = 'entry' | 'exit' | 'both';
 export interface PointAnprConfig {
   /** Herda configurações ANPR da empresa. Se `true`, ignora os campos ANPR individuais. */
   inheritCompanyConfig: boolean;
-  /** Habilitar registro automático de movimentação por ANPR (usado quando inheritCompanyConfig = false). */
+  /** Habilitar registro automático de movimentação por ANPR. `false` desativa apenas este ponto, mesmo com `inheritCompanyConfig = true`. */
   anprAutoRegister: boolean | null;
   /** Salvar foto quando placa não reconhecida (usado quando inheritCompanyConfig = false). */
   anprSaveUnrecognizedPhotos: boolean | null;
