@@ -619,8 +619,11 @@ export class PendingReviewDialog implements OnDestroy {
 
     if (apiError?.status === 404) {
       // Placa válida, mas sem veículo cadastrado: segue para o cadastro com a
-      // placa já informada, sem exibir erro.
-      if (apiError.message?.toLowerCase().includes('veículo')) {
+      // placa já informada, sem exibir erro. O 404 de "movimento não encontrado"
+      // (lista desatualizada) continua sendo exibido como erro.
+      const mensagem = this.normalizar(apiError.message ?? '');
+      const veiculoAusente = mensagem.includes('veiculo') || mensagem.includes('placa');
+      if (this.modo() === 'plate' && veiculoAusente) {
         this.irParaCadastro(this.plateModel().plate);
         return;
       }
@@ -630,11 +633,26 @@ export class PendingReviewDialog implements OnDestroy {
     }
 
     if (apiError?.status === 409) {
+      // Conflito ao cadastrar o veículo (ex.: placa já existente) mantém o
+      // formulário aberto para o usuário corrigir os dados.
+      const mensagem = this.normalizar(apiError.message ?? '');
+      if (mensagem.includes('veiculo') || mensagem.includes('placa')) {
+        toast.error(apiError.message || fallback);
+        return;
+      }
       toast.error('Este movimento já foi processado anteriormente.');
       this.dialogRef.close(null);
       return;
     }
 
     toast.error(apiError?.message || fallback);
+  }
+
+  /** Remove acentos e caixa para comparar mensagens da API. */
+  private normalizar(texto: string): string {
+    return texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
   }
 }
