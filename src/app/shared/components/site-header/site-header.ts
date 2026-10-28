@@ -237,7 +237,7 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
           </z-navigation-menu>
         }
 
-        @if (isAdmin()) {
+        @if (isRoot()) {
           <a z-button zType="ghost" zSize="sm" routerLink="/metricas" routerLinkActive="bg-accent">
             <ng-icon name="lucideActivity" aria-hidden="true" class="size-4" />
             Métricas

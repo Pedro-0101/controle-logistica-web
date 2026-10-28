@@ -87,7 +87,8 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
 /**
  * Métricas do sistema (`GET /stats`): disponibilidade e performance do serviço
  * ANPR, observações confirmadas e telemetria do registro automático.
- * Tela restrita a usuários com a função `admin`.
+ * Tela restrita ao administrador principal (global), identificado por
+ * `companyId = null`.
  */
 @Component({
   selector: 'app-system-stats',

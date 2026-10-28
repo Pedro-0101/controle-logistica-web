@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { adminGuard, authGuard, companyGuard, rootGuard } from '@/shared/core/auth';
+import { authGuard, companyGuard, rootGuard } from '@/shared/core/auth';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -86,7 +86,7 @@ export const routes: Routes = [
   },
   {
     path: 'metricas',
-    canActivate: [authGuard, adminGuard],
+    canActivate: [authGuard, rootGuard],
     loadComponent: () => import('./features/stats/stats').then((m) => m.SystemStats),
     title: 'Métricas do sistema',
   },
