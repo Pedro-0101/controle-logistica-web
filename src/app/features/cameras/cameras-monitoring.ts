@@ -167,7 +167,6 @@ const GRID_CLASSES: Record<LayoutType, string> = {
                       <gp-camera-stream
                       [src]="camera.streamUrls.hlsUrl"
                       [title]="camera.name"
-                      [anpr]="true"
                       [class.fill-height]="layout() === '2'"
                     />
                   } @else {
