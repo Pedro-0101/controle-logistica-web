@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000',
-  swaggerUrl: 'http://localhost:3000/docs',
-  swaggerJsonUrl: 'http://localhost:3000/docs-json',
+  apiUrl: 'http://192.168.11.107:3000',
+  swaggerUrl: 'http://192.168.11.107:3000/docs',
+  swaggerJsonUrl: 'http://192.168.11.107:3000/docs-json',
 };
