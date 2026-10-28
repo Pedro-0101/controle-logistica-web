@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import type {
   AnprRecognition,
   ExternalInteractionFilters,
+  ExternalInteractionListResponse,
   ExternalInteractionUsage,
 } from '@/shared/models';
 import { toExternalInteractionHttpQuery } from '@/shared/models';
@@ -32,6 +33,18 @@ export class AnprService {
    */
   externalUsage(filters?: ExternalInteractionFilters): Observable<ExternalInteractionUsage> {
     return this.api.get<ExternalInteractionUsage>('/anpr/external-interactions/usage', {
+      params: toExternalInteractionHttpQuery(filters),
+    });
+  }
+
+  /**
+   * Lista as interações externas no escopo do usuário autenticado. Retorna
+   * também o resumo agregado do período filtrado.
+   */
+  externalInteractions(
+    filters?: ExternalInteractionFilters,
+  ): Observable<ExternalInteractionListResponse> {
+    return this.api.get<ExternalInteractionListResponse>('/anpr/external-interactions', {
       params: toExternalInteractionHttpQuery(filters),
     });
   }

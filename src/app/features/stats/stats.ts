@@ -1,15 +1,27 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
 import { toast } from 'ngx-sonner';
 
+import { SessionService } from '@/shared/core/auth';
 import { SiteHeader } from '@/shared/components/site-header/site-header';
 import { ZardBadgeComponent } from '@/shared/components/badge';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardCardComponent } from '@/shared/components/card';
+import { ZardInputDirective } from '@/shared/components/input';
+import { ZardSelectImports } from '@/shared/components/select';
 import { ZardTableImports } from '@/shared/components/table';
+import { AnprService } from '@/shared/services/anpr.service';
+import { CompanyService } from '@/shared/services/company.service';
 import { LoggerService } from '@/shared/services/logger.service';
 import { StatsService } from '@/shared/services/stats.service';
-import type { SystemStatsResponse } from '@/shared/models';
+import type {
+  Company,
+  ExternalInteractionFilters,
+  ExternalInteractionSummary,
+  StatsFilters,
+  SystemStatsResponse,
+} from '@/shared/models';
 
 type BadgeType = 'default' | 'secondary' | 'destructive' | 'outline';
 
@@ -80,11 +92,14 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-system-stats',
   imports: [
+    RouterLink,
     SiteHeader,
     NgIcon,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardCardComponent,
+    ZardInputDirective,
+    ZardSelectImports,
     ZardTableImports,
   ],
   template: `
@@ -126,6 +141,60 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
           <span>{{ message }}</span>
         </div>
       }
+
+      <z-card>
+        <div class="flex flex-wrap items-end gap-3 p-4">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-muted-foreground">Empresa</span>
+            <z-select
+              [(zValue)]="filtroCompanyId"
+              (zSelectionChange)="onFiltroChange()"
+              zPlaceholder="Todas"
+              class="w-56"
+            >
+              @if (isRoot()) {
+                <z-select-item zValue="">Todas</z-select-item>
+              }
+              @for (empresa of empresas(); track empresa.id) {
+                <z-select-item [zValue]="empresa.id">{{ empresa.name }}</z-select-item>
+              }
+            </z-select>
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-muted-foreground">De</span>
+            <input
+              z-input
+              type="date"
+              class="w-40"
+              [value]="filtroDateFrom()"
+              (change)="onDateChange('from', $event)"
+            />
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-muted-foreground">Até</span>
+            <input
+              z-input
+              type="date"
+              class="w-40"
+              [value]="filtroDateTo()"
+              (change)="onDateChange('to', $event)"
+            />
+          </label>
+
+          <button z-button zType="ghost" zSize="sm" type="button" (click)="limparFiltros()">
+            <ng-icon name="lucideX" aria-hidden="true" />
+            Limpar filtros
+          </button>
+        </div>
+
+        <p class="border-t border-border px-4 py-3 text-xs text-muted-foreground">
+          A empresa filtra monitores, observações e métricas por câmera. As datas filtram
+          observações confirmadas e uso de APIs externas. Contadores do ANPR e registro
+          automático permanecem globais.
+        </p>
+      </z-card>
 
       @if (!stats() && loading()) {
         <z-card>
@@ -220,6 +289,67 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
             </div>
           </z-card>
         </div>
+
+        <z-card>
+          <div
+            class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3"
+          >
+            <div>
+              <h2 class="text-sm font-medium">Uso de APIs externas</h2>
+              <p class="text-xs text-muted-foreground">
+                Chamadas no período filtrado, no escopo da empresa selecionada.
+              </p>
+            </div>
+            @if (isRoot()) {
+              <a z-button zType="outline" zSize="sm" routerLink="/anpr/uso-externo">
+                Ver detalhes
+              </a>
+            }
+          </div>
+
+          @if (externalLoading()) {
+            <p class="px-4 py-6 text-sm text-muted-foreground">Carregando uso externo...</p>
+          } @else {
+            @if (externalSummary(); as ext) {
+              <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                <div class="rounded-md border border-border p-3">
+                  <div class="text-xs text-muted-foreground">Chamadas</div>
+                  <div class="text-lg font-semibold">{{ formatNumber(ext.calls) }}</div>
+                </div>
+                <div class="rounded-md border border-border p-3">
+                  <div class="text-xs text-muted-foreground">Sucessos</div>
+                  <div class="text-lg font-semibold">{{ formatNumber(ext.success) }}</div>
+                </div>
+                <div class="rounded-md border border-border p-3">
+                  <div class="text-xs text-muted-foreground">Sem placa</div>
+                  <div class="text-lg font-semibold">{{ formatNumber(ext.noPlate) }}</div>
+                </div>
+                <div class="rounded-md border border-border p-3">
+                  <div class="text-xs text-muted-foreground">Falhas</div>
+                  <div class="text-lg font-semibold">{{ formatNumber(ext.failures) }}</div>
+                </div>
+                <div class="rounded-md border border-border p-3">
+                  <div class="text-xs text-muted-foreground">Latência média</div>
+                  <div class="text-lg font-semibold">{{ formatarLatencia(ext.avgLatencyMs) }}</div>
+                </div>
+                <div class="rounded-md border border-border p-3">
+                  <div class="text-xs text-muted-foreground">Latência p95</div>
+                  <div class="text-lg font-semibold">{{ formatarLatencia(ext.p95LatencyMs) }}</div>
+                </div>
+                <div class="rounded-md border border-border p-3">
+                  <div class="text-xs text-muted-foreground">Custo total</div>
+                  <div class="text-lg font-semibold">
+                    {{ formatarCusto(ext.totalCost, ext.costCurrency) }}
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <p class="px-4 py-6 text-sm text-muted-foreground">
+                Uso de APIs externas indisponível para os filtros selecionados.
+              </p>
+            }
+          }
+        </z-card>
 
         <z-card>
           <div
@@ -528,6 +658,7 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
               <thead z-table-header>
                 <tr z-table-row>
                   <th z-table-head>Câmera</th>
+                  <th z-table-head>Empresa</th>
                   <th z-table-head>Placa</th>
                   <th z-table-head class="text-right">Confiança</th>
                   <th z-table-head>Status</th>
@@ -543,6 +674,9 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
                   <tr z-table-row>
                     <td z-table-cell class="whitespace-nowrap">
                       {{ observation.cameraName ?? observation.cameraId }}
+                    </td>
+                    <td z-table-cell class="whitespace-nowrap">
+                      {{ nomeEmpresa(observation.companyId) }}
                     </td>
                     <td z-table-cell class="font-mono font-medium">
                       {{ observation.plate ?? '—' }}
@@ -564,7 +698,7 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
                   </tr>
                 } @empty {
                   <tr z-table-row>
-                    <td z-table-cell colspan="6" class="py-10 text-center text-muted-foreground">
+                    <td z-table-cell colspan="7" class="py-10 text-center text-muted-foreground">
                       Nenhuma observação confirmada no momento.
                     </td>
                   </tr>
@@ -676,11 +810,23 @@ const REGISTRATION_DURATION_LABELS: Record<string, string> = {
 })
 export class SystemStats implements OnInit {
   private readonly statsService = inject(StatsService);
+  private readonly anprService = inject(AnprService);
+  private readonly companyService = inject(CompanyService);
+  private readonly session = inject(SessionService);
   private readonly logger = inject(LoggerService).create('SystemStats');
 
   protected readonly stats = signal<SystemStatsResponse | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  protected readonly empresas = signal<Company[]>([]);
+  protected readonly externalSummary = signal<ExternalInteractionSummary | null>(null);
+  protected readonly externalLoading = signal(false);
+  protected readonly isRoot = computed(() => this.session.usuario()?.companyId === null);
+
+  protected readonly filtroCompanyId = signal('');
+  protected readonly filtroDateFrom = signal('');
+  protected readonly filtroDateTo = signal('');
 
   protected readonly anprQueueEntries = computed(() =>
     this.entries(this.stats()?.anpr.performance.data?.queue),
@@ -712,14 +858,49 @@ export class SystemStats implements OnInit {
   );
 
   ngOnInit(): void {
+    const companyId = this.session.usuario()?.companyId;
+    if (companyId) {
+      this.filtroCompanyId.set(companyId);
+    }
+    this.carregarEmpresas();
+    this.carregar();
+  }
+
+  protected onFiltroChange(): void {
+    this.carregar();
+  }
+
+  protected onDateChange(campo: 'from' | 'to', event: Event): void {
+    const valor = (event.target as HTMLInputElement).value;
+    if (campo === 'from') {
+      this.filtroDateFrom.set(valor);
+    } else {
+      this.filtroDateTo.set(valor);
+    }
+    this.carregar();
+  }
+
+  protected limparFiltros(): void {
+    this.filtroCompanyId.set(this.session.usuario()?.companyId ?? '');
+    this.filtroDateFrom.set('');
+    this.filtroDateTo.set('');
     this.carregar();
   }
 
   protected carregar(): void {
+    const companyId = this.filtroCompanyId();
+    const dateFrom = this.filtroDateFrom();
+    const dateTo = this.filtroDateTo();
+
+    const statsFilters: StatsFilters = {};
+    if (companyId) statsFilters.companyId = companyId;
+    if (dateFrom) statsFilters.dateFrom = `${dateFrom}T00:00:00.000Z`;
+    if (dateTo) statsFilters.dateTo = `${dateTo}T23:59:59.999Z`;
+
     this.loading.set(true);
     this.error.set(null);
 
-    this.statsService.getStats().subscribe({
+    this.statsService.getStats(statsFilters).subscribe({
       next: (response) => {
         this.stats.set(response);
         this.loading.set(false);
@@ -731,6 +912,41 @@ export class SystemStats implements OnInit {
         toast.error('Falha ao carregar as métricas do sistema.');
       },
     });
+
+    this.carregarUsoExterno(companyId, dateFrom, dateTo);
+  }
+
+  private carregarEmpresas(): void {
+    this.companyService.list().subscribe({
+      next: (empresas) => this.empresas.set(empresas),
+      error: (error) => this.logger.error('Falha ao carregar empresas', error),
+    });
+  }
+
+  private carregarUsoExterno(companyId: string, dateFrom: string, dateTo: string): void {
+    this.externalLoading.set(true);
+    this.externalSummary.set(null);
+
+    const filters: ExternalInteractionFilters = { page: 1, limit: 1 };
+    if (companyId) filters.companyId = companyId;
+    if (dateFrom) filters.dateFrom = `${dateFrom}T00:00:00.000Z`;
+    if (dateTo) filters.dateTo = `${dateTo}T23:59:59.999Z`;
+
+    this.anprService.externalInteractions(filters).subscribe({
+      next: (response) => {
+        this.externalSummary.set(response.summary);
+        this.externalLoading.set(false);
+      },
+      error: (error) => {
+        this.externalLoading.set(false);
+        this.logger.error('Falha ao carregar uso das APIs externas', error);
+      },
+    });
+  }
+
+  protected nomeEmpresa(companyId: string | null | undefined): string {
+    if (!companyId) return '—';
+    return this.empresas().find((empresa) => empresa.id === companyId)?.name ?? companyId;
   }
 
   protected anprQueueValue(key: string): number | null {
@@ -844,6 +1060,26 @@ export class SystemStats implements OnInit {
   protected formatConfidence(value: number | null | undefined): string {
     if (value === null || value === undefined || !Number.isFinite(value)) return '—';
     return `${(value * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+  }
+
+  protected formatarLatencia(ms: number | null | undefined): string {
+    if (ms === null || ms === undefined) return '—';
+    return `${Math.round(ms)} ms`;
+  }
+
+  protected formatarCusto(
+    valor: number | null | undefined,
+    moeda: string | null | undefined,
+  ): string {
+    if (valor === null || valor === undefined) return '—';
+    try {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: moeda ?? 'USD',
+      }).format(valor);
+    } catch {
+      return `${valor} ${moeda ?? ''}`.trim();
+    }
   }
 
   protected formatDateTime(iso: string | null | undefined): string {

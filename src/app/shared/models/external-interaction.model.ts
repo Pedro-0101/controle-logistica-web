@@ -68,6 +68,13 @@ export interface CompanyUsage {
   totalCost: number | null;
 }
 
+/** Resposta de `GET /anpr/external-interactions` (escopo da empresa do usuário). */
+export interface ExternalInteractionListResponse {
+  data: ExternalInteraction[];
+  meta: PaginatedMeta;
+  summary: ExternalInteractionSummary;
+}
+
 /** Resposta de `GET /anpr/external-interactions/usage` (somente admin raiz). */
 export interface ExternalInteractionUsage {
   data: ExternalInteraction[];

@@ -1,7 +1,8 @@
 import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import type { SystemStatsResponse } from '@/shared/models';
+import type { StatsFilters, SystemStatsResponse } from '@/shared/models';
+import { toStatsHttpQuery } from '@/shared/models';
 import { ApiClientService } from './api-client.service';
 
 /**
@@ -12,8 +13,10 @@ import { ApiClientService } from './api-client.service';
 export class StatsService {
   private readonly api = inject(ApiClientService);
 
-  /** Retorna as métricas consolidadas do sistema. */
-  getStats(): Observable<SystemStatsResponse> {
-    return this.api.get<SystemStatsResponse>('/stats');
+  /** Retorna as métricas consolidadas do sistema, opcionalmente filtradas. */
+  getStats(filters?: StatsFilters): Observable<SystemStatsResponse> {
+    return this.api.get<SystemStatsResponse>('/stats', {
+      params: toStatsHttpQuery(filters),
+    });
   }
 }
