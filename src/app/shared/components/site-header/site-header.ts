@@ -236,6 +236,13 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
             </div>
           </z-navigation-menu>
         }
+
+        @if (isAdmin()) {
+          <a z-button zType="ghost" zSize="sm" routerLink="/metricas" routerLinkActive="bg-accent">
+            <ng-icon name="lucideActivity" aria-hidden="true" class="size-4" />
+            Métricas
+          </a>
+        }
       </nav>
 
       <div class="ml-auto flex items-center gap-1">

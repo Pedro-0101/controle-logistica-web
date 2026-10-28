@@ -1,3 +1,4 @@
+export * from './admin.guard';
 export * from './auth.guard';
 export * from './company.guard';
 export * from './root.guard';

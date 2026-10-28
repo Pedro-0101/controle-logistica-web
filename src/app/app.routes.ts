@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard, companyGuard, rootGuard } from '@/shared/core/auth';
+import { adminGuard, authGuard, companyGuard, rootGuard } from '@/shared/core/auth';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -83,6 +83,12 @@ export const routes: Routes = [
     canActivate: [authGuard, rootGuard],
     loadComponent: () => import('./features/anpr/external-usage').then((m) => m.ExternalUsage),
     title: 'Uso de APIs externas',
+  },
+  {
+    path: 'metricas',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./features/stats/stats').then((m) => m.SystemStats),
+    title: 'Métricas do sistema',
   },
   { path: '**', redirectTo: 'home' },
 ];
