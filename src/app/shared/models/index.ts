@@ -13,3 +13,4 @@ export * from './stats.model';
 export * from './user.model';
 export * from './vehicle.model';
 export * from './movement.model';
+export * from './notification.model';

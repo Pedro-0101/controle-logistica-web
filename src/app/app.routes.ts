@@ -85,6 +85,20 @@ export const routes: Routes = [
     title: 'Uso de APIs externas',
   },
   {
+    path: 'notificacoes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/notifications/notifications').then((m) => m.Notifications),
+    title: 'Notificações',
+  },
+  {
+    path: 'configuracoes/notificacoes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/notifications/notification-settings').then((m) => m.NotificationSettings),
+    title: 'Configurações de notificações',
+  },
+  {
     path: 'metricas',
     canActivate: [authGuard, rootGuard],
     loadComponent: () => import('./features/stats/stats').then((m) => m.SystemStats),

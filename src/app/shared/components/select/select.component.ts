@@ -21,19 +21,21 @@ import { selectVariants, type ZardSelectVariants } from './select.variants';
 import { ZardSelectItemComponent } from './select-item.component';
 import { ZardEmptyComponent } from '../empty/empty.component';
 
+let nextSelectId = 0;
+
 @Component({
   selector: 'z-select',
   imports: [ZardEmptyComponent],
   template: `
      @if (zLabel(); as label) {
-       <label class="block text-sm font-medium mb-1 text-foreground" for="zselect-trigger">{{ label }}</label>
+       <label class="block text-sm font-medium mb-1 text-foreground" [for]="selectId">{{ label }}</label>
      }
 
      <button
-       id="zselect-trigger"
+       [id]="selectId"
        type="button"
        role="combobox"
-       [attr.aria-controls]="isOpen() ? 'zselect-listbox' : undefined"
+       [attr.aria-controls]="isOpen() ? selectId + '-listbox' : undefined"
       [class]="triggerClasses()"
       [disabled]="disabled() || zDisabled()"
       [attr.aria-expanded]="isOpen()"
@@ -90,8 +92,8 @@ import { ZardEmptyComponent } from '../empty/empty.component';
     @if (isOpen()) {
       <div
         class="absolute z-50 mt-1 left-0 w-full overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
-        role="listbox"
-        id="zselect-listbox"
+         role="listbox"
+         [id]="selectId + '-listbox'"
         [attr.aria-multiselectable]="zMultiple() || null"
       >
         @if (hasItems()) {
@@ -128,6 +130,7 @@ export class ZardSelectComponent implements ControlValueAccessor {
 
   readonly zSelectionChange = output<string | string[]>();
 
+  protected readonly selectId = `zselect-${nextSelectId++}`;
   protected readonly isOpen = signal(false);
   protected readonly disabled = signal(false);
 

@@ -6,13 +6,21 @@ import { SessionService } from '@/shared/core/auth';
 import { ThemeService } from '@/shared/services/theme.service';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
+import { NotificationBell } from '@/shared/components/notification-bell/notification-bell';
 
 @Component({
   selector: 'app-site-header',
   host: {
     '(document:click)': 'menuAberto.set(false)',
   },
-  imports: [RouterLink, RouterLinkActive, NgIcon, ZardButtonComponent, ZardNavigationMenuImports],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    NgIcon,
+    ZardButtonComponent,
+    ZardNavigationMenuImports,
+    NotificationBell,
+  ],
   template: `
     <header class="flex h-14 items-center gap-6 border-b border-border bg-background px-4 sm:px-6">
       <a
@@ -246,6 +254,8 @@ import { ZardNavigationMenuImports } from '@/shared/components/navigation-menu';
       </nav>
 
       <div class="ml-auto flex items-center gap-1">
+        <app-notification-bell />
+
         <button
           z-button
           zType="ghost"
