@@ -8,6 +8,27 @@ export interface StreamUrls {
   rtspUrl: string;
 }
 
+/**
+ * Estado atual do monitoramento contínuo de uma câmera, conforme retornado por
+ * `GET /camera/{id}/current-observation`.
+ */
+export type CameraObservationStatus = 'waiting' | 'candidate' | 'confirmed' | 'stale' | 'offline';
+
+/** Leitura recente do ANPR para uma câmera monitorada. */
+export interface CurrentObservation {
+  cameraId: string;
+  status: CameraObservationStatus;
+  observationId: string | null;
+  placa: string | null;
+  confianca: number | null;
+  capturedAt: string | null;
+  lastSeenAt: string | null;
+  expiresAt: string | null;
+  consecutiveReads: number;
+  /** Caixa delimitadora `[x1, y1, x2, y2]` da placa, em pixels da captura. */
+  box: [number, number, number, number] | null;
+}
+
 /** Câmera IP, conforme retornado por `/camera`. */
 export interface Camera {
   id: string;

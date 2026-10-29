@@ -1,6 +1,7 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 
 import { NgIcon } from '@ng-icons/core';
+import { finalize } from 'rxjs';
 
 import { SiteHeader } from '@/shared/components/site-header/site-header';
 import { CameraStream } from '@/shared/components/camera-stream';
@@ -15,7 +16,7 @@ import { CameraService } from '@/shared/services/camera.service';
 import { AdminUnityService } from '@/shared/services/admin-unity.service';
 import { LocalStorageService } from '@/shared/services/local-storage.service';
 import { LoggerService } from '@/shared/services/logger.service';
-import type { AdminUnity, Camera } from '@/shared/models';
+import type { AdminUnity, Camera, CurrentObservation } from '@/shared/models';
 
 type LayoutType = '1' | '2' | '4';
 
@@ -24,9 +25,23 @@ interface CameraSlot {
   cameraId: string | null;
 }
 
+interface VehicleAlert {
+  observationId: string;
+  plate: string;
+  cameraName: string;
+  confidence: number | null;
+  capturedAt: string | null;
+  detectedAt: number;
+}
+
 const LAYOUT_KEY = 'camera-layout';
 const SLOTS_KEY = 'camera-slots';
 const ADMIN_UNITY_KEY = 'camera-admin-unity';
+
+/** Intervalo de consulta do monitoramento ANPR (recomendado: 2s). */
+const OBSERVATION_POLL_MS = 2_000;
+/** Quantidade máxima de alertas empilhados na lateral da tela. */
+const MAX_VEHICLE_ALERTS = 4;
 
 const SLOT_COUNT_MAP: Record<LayoutType, number> = { '1': 1, '2': 2, '4': 4 };
 
@@ -202,9 +217,58 @@ const GRID_CLASSES: Record<LayoutType, string> = {
         </section>
       }
     </main>
+
+    <aside
+      class="pointer-events-none fixed right-4 top-20 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2"
+      aria-label="Veículos identificados nas câmeras monitoradas"
+    >
+      @for (alert of vehicleAlerts(); track alert.observationId) {
+        <div
+          class="pointer-events-auto animate-in fade-in slide-in-from-right-8 duration-300 rounded-lg border border-border bg-background p-4 shadow-lg"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="flex size-9 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
+            >
+              <ng-icon name="lucideCar" class="size-5" aria-hidden="true" />
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-sm font-semibold text-foreground">Veículo identificado</p>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  class="-mr-2 -mt-2 shrink-0"
+                  [attr.aria-label]="'Dispensar alerta da placa ' + alert.plate"
+                  (click)="dismissAlert(alert.observationId)"
+                >
+                  <ng-icon name="lucideX" class="size-4" aria-hidden="true" />
+                </button>
+              </div>
+
+              <p class="mt-1 font-mono text-xl font-bold tracking-[0.15em] text-foreground">
+                {{ alert.plate }}
+              </p>
+              <p class="mt-1 text-xs text-muted-foreground">
+                {{ alert.cameraName }} · {{ formatAlertTime(alert) }}
+              </p>
+              @if (alert.confidence !== null) {
+                <p class="mt-0.5 text-xs text-muted-foreground">
+                  Confiança: {{ confidencePercent(alert.confidence) }}
+                </p>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </aside>
   `,
 })
-export class CamerasMonitoring implements OnInit {
+export class CamerasMonitoring implements OnInit, OnDestroy {
   private readonly cameraService = inject(CameraService);
   private readonly adminUnityService = inject(AdminUnityService);
   private readonly localStorage = inject(LocalStorageService);
@@ -219,6 +283,14 @@ export class CamerasMonitoring implements OnInit {
 
   protected readonly layout = signal<LayoutType>(this.loadLayout());
   protected readonly slots = signal<CameraSlot[]>(this.loadSlots());
+
+  /** Alertas laterais de veículos identificados nas câmeras monitoradas. */
+  protected readonly vehicleAlerts = signal<VehicleAlert[]>([]);
+
+  /** Observações já anunciadas, para não repetir o alerta a cada polling. */
+  private readonly announcedObservations = new Set<string>();
+  private pollTimer: ReturnType<typeof setInterval> | undefined;
+  private polling = false;
 
   protected readonly layoutOptions: { value: LayoutType; label: string }[] = [
     { value: '1', label: '1' },
@@ -261,6 +333,11 @@ export class CamerasMonitoring implements OnInit {
 
   ngOnInit(): void {
     this.loadInitialData();
+    this.pollTimer = setInterval(() => this.pollObservations(), OBSERVATION_POLL_MS);
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollTimer) clearInterval(this.pollTimer);
   }
 
   protected loadInitialData(): void {
@@ -295,6 +372,7 @@ export class CamerasMonitoring implements OnInit {
     this.selectedAdminUnityId.set(unitId);
     this.localStorage.set(ADMIN_UNITY_KEY, unitId);
     this.slots.update((current) => current.map((s) => ({ ...s, cameraId: null })));
+    this.clearAlerts();
     this.autoAssignIfEmpty(this.filteredCameras());
   }
 
@@ -321,6 +399,92 @@ export class CamerasMonitoring implements OnInit {
       }
       return next;
     });
+  }
+
+  protected dismissAlert(observationId: string): void {
+    this.vehicleAlerts.update((alerts) =>
+      alerts.filter((alert) => alert.observationId !== observationId),
+    );
+  }
+
+  protected formatAlertTime(alert: VehicleAlert): string {
+    const date = new Date(alert.capturedAt ?? alert.detectedAt);
+    if (Number.isNaN(date.getTime())) return 'agora';
+    return date.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  protected confidencePercent(confidence: number): string {
+    return `${Math.round(confidence * 100)}%`;
+  }
+
+  /**
+   * Consulta o monitoramento contínuo (ANPR) das câmeras exibidas nos slots e
+   * anuncia, na lateral da tela, cada nova placa confirmada.
+   */
+  private pollObservations(): void {
+    if (this.polling || this.loading() || this.error()) return;
+
+    const monitored = new Map<string, Camera>();
+    for (const slot of this.visibleSlots()) {
+      const camera = this.getCameraForSlot(slot);
+      if (camera) monitored.set(camera.id, camera);
+    }
+    if (monitored.size === 0) return;
+
+    this.polling = true;
+    let pending = monitored.size;
+    const finish = (): void => {
+      pending -= 1;
+      if (pending === 0) this.polling = false;
+    };
+
+    for (const camera of monitored.values()) {
+      this.cameraService
+        .currentObservation(camera.id)
+        .pipe(finalize(finish))
+        .subscribe({
+          next: (state) => this.registerObservation(camera, state),
+          error: (err: unknown) =>
+            this.logger.debug(`Falha ao consultar a câmera ${camera.name}`, err),
+        });
+    }
+  }
+
+  private registerObservation(camera: Camera, state: CurrentObservation): void {
+    if (state.status !== 'confirmed' || !state.observationId || !state.placa) return;
+    if (this.announcedObservations.has(state.observationId)) return;
+
+    this.announcedObservations.add(state.observationId);
+    this.trimAnnouncedObservations();
+
+    const alert: VehicleAlert = {
+      observationId: state.observationId,
+      plate: state.placa,
+      cameraName: camera.name,
+      confidence: state.confianca,
+      capturedAt: state.capturedAt,
+      detectedAt: Date.now(),
+    };
+
+    this.vehicleAlerts.update((alerts) => [alert, ...alerts].slice(0, MAX_VEHICLE_ALERTS));
+  }
+
+  /** Mantém o conjunto de observações anunciadas limitado em memória. */
+  private trimAnnouncedObservations(): void {
+    while (this.announcedObservations.size > 200) {
+      const oldest = this.announcedObservations.values().next().value;
+      if (oldest === undefined) return;
+      this.announcedObservations.delete(oldest);
+    }
+  }
+
+  private clearAlerts(): void {
+    this.announcedObservations.clear();
+    this.vehicleAlerts.set([]);
   }
 
   private autoAssignIfEmpty(cameras: Camera[]): void {
