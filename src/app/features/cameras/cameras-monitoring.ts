@@ -42,6 +42,8 @@ const ADMIN_UNITY_KEY = 'camera-admin-unity';
 const OBSERVATION_POLL_MS = 2_000;
 /** Quantidade máxima de alertas empilhados na lateral da tela. */
 const MAX_VEHICLE_ALERTS = 4;
+/** Tempo até o alerta desaparecer sozinho. */
+const ALERT_AUTO_DISMISS_MS = 10_000;
 
 const SLOT_COUNT_MAP: Record<LayoutType, number> = { '1': 1, '2': 2, '4': 4 };
 
@@ -219,30 +221,30 @@ const GRID_CLASSES: Record<LayoutType, string> = {
     </main>
 
     <aside
-      class="pointer-events-none fixed right-4 top-20 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2"
+      class="pointer-events-none fixed right-4 bottom-4 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2"
       aria-label="Veículos identificados nas câmeras monitoradas"
     >
       @for (alert of vehicleAlerts(); track alert.observationId) {
         <div
-          class="pointer-events-auto animate-in fade-in slide-in-from-right-8 duration-300 rounded-lg border border-border bg-background p-4 shadow-lg"
+          class="pointer-events-auto animate-in fade-in slide-in-from-right-8 duration-300 rounded-lg border border-border bg-background p-3 shadow-lg"
           role="status"
           aria-live="polite"
         >
-          <div class="flex items-start gap-3">
+          <div class="flex items-start gap-2.5">
             <div
-              class="flex size-9 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
+              class="flex size-8 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
             >
-              <ng-icon name="lucideCar" class="size-5" aria-hidden="true" />
+              <ng-icon name="lucideCar" class="size-4" aria-hidden="true" />
             </div>
 
             <div class="min-w-0 flex-1">
-              <div class="flex items-start justify-between gap-2">
+              <div class="flex items-start justify-between gap-1">
                 <p class="text-sm font-semibold text-foreground">Veículo identificado</p>
                 <button
                   z-button
                   zType="ghost"
                   zSize="icon"
-                  class="-mr-2 -mt-2 shrink-0"
+                  class="-mr-1.5 -mt-1.5 shrink-0"
                   [attr.aria-label]="'Dispensar alerta da placa ' + alert.plate"
                   (click)="dismissAlert(alert.observationId)"
                 >
@@ -250,17 +252,15 @@ const GRID_CLASSES: Record<LayoutType, string> = {
                 </button>
               </div>
 
-              <p class="mt-1 font-mono text-xl font-bold tracking-[0.15em] text-foreground">
+              <p class="font-mono text-lg font-bold tracking-[0.12em] text-foreground">
                 {{ alert.plate }}
               </p>
-              <p class="mt-1 text-xs text-muted-foreground">
+              <p class="mt-0.5 text-[11px] text-muted-foreground">
                 {{ alert.cameraName }} · {{ formatAlertTime(alert) }}
+                @if (alert.confidence !== null) {
+                  · {{ confidencePercent(alert.confidence) }}
+                }
               </p>
-              @if (alert.confidence !== null) {
-                <p class="mt-0.5 text-xs text-muted-foreground">
-                  Confiança: {{ confidencePercent(alert.confidence) }}
-                </p>
-              }
             </div>
           </div>
         </div>
@@ -289,6 +289,7 @@ export class CamerasMonitoring implements OnInit, OnDestroy {
 
   /** Observações já anunciadas, para não repetir o alerta a cada polling. */
   private readonly announcedObservations = new Set<string>();
+  private readonly alertTimers = new Set<ReturnType<typeof setTimeout>>();
   private pollTimer: ReturnType<typeof setInterval> | undefined;
   private polling = false;
 
@@ -338,6 +339,8 @@ export class CamerasMonitoring implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.pollTimer) clearInterval(this.pollTimer);
+    for (const timer of this.alertTimers) clearTimeout(timer);
+    this.alertTimers.clear();
   }
 
   protected loadInitialData(): void {
@@ -471,6 +474,12 @@ export class CamerasMonitoring implements OnInit, OnDestroy {
     };
 
     this.vehicleAlerts.update((alerts) => [alert, ...alerts].slice(0, MAX_VEHICLE_ALERTS));
+
+    const timer = setTimeout(() => {
+      this.alertTimers.delete(timer);
+      this.dismissAlert(alert.observationId);
+    }, ALERT_AUTO_DISMISS_MS);
+    this.alertTimers.add(timer);
   }
 
   /** Mantém o conjunto de observações anunciadas limitado em memória. */
@@ -484,6 +493,8 @@ export class CamerasMonitoring implements OnInit, OnDestroy {
 
   private clearAlerts(): void {
     this.announcedObservations.clear();
+    for (const timer of this.alertTimers) clearTimeout(timer);
+    this.alertTimers.clear();
     this.vehicleAlerts.set([]);
   }
 
